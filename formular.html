@@ -416,6 +416,59 @@
       .export-btns { flex-direction: column; }
       .btn-export { width: 100%; text-align: center; }
     }
+    /* KALENDÁR */
+    .cal-month { }
+    .cal-title { font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 10px; color: #1a1a2e; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .cal-dow { font-size: 10px; font-weight: 700; text-align: center; color: #718096; padding: 4px 0; text-transform: uppercase; }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: default;
+      background: #f7f8fa;
+      color: #1a1a2e;
+      position: relative;
+    }
+    .cal-day.busy { background: #1a1a2e; color: white; font-weight: 700; }
+    .cal-day.busy-start { border-radius: 10px 4px 4px 10px; }
+    .cal-day.busy-end { border-radius: 4px 10px 10px 4px; }
+    .cal-day.busy-mid { border-radius: 2px; }
+    .cal-day.past { background: #f0f0f0; color: #bbb; }
+    .cal-day.today { outline: 2.5px solid #3182ce; outline-offset: -2px; font-weight: 700; }
+    .cal-day.empty { background: transparent; }
+    .cal-day[title]:not(.empty):hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%; transform: translateX(-50%);
+      background: #1a1a2e; color: white;
+      font-size: 11px; padding: 4px 8px; border-radius: 4px;
+      white-space: nowrap; z-index: 10; pointer-events: none;
+    }
+    .cal-nav {
+      background: #e2e8f0; border: none; border-radius: 6px;
+      width: 28px; height: 28px; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #1a1a2e; line-height: 1;
+    }
+    .cal-nav:hover { background: #1a1a2e; color: white; }
+    .cal-legend {
+      display: inline-block; width: 14px; height: 14px;
+      border-radius: 3px; vertical-align: middle; margin-right: 4px;
+    }
+    .cal-free { background: #f7f8fa; border: 1px solid #e2e8f0; }
+    .cal-busy { background: #1a1a2e; }
+    .cal-today { background: white; outline: 2.5px solid #3182ce; }
+    .cal-past { background: #f0f0f0; }
+    @media (max-width: 600px) {
+      #cal-wrapper { grid-template-columns: 1fr !important; }
+      #calendar-section .field { grid-column: 1 / -1; }
+      #calendar-section > div > div:last-child { grid-template-columns: 1fr 1fr !important; }
+    }
+
     /* CSV ADMIN */
     #csv-admin { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #1a1a2e; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
@@ -798,6 +851,32 @@
 
   <button id="csv-admin" onclick="downloadCSV()" title="Admin: Stiahnuť CSV všetkých zmlúv">📊 Stiahnuť CSV</button>
 
+  <!-- KALENDÁR OBSADENOSTI -->
+  <div id="calendar-section" class="card" style="margin-top:0;">
+    <h2><span class="icon">📅</span> Obsadenosť vozidla
+      <span style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <button class="cal-nav" onclick="calNav(-1)">&#8249;</button>
+        <button class="cal-nav" onclick="calNav(1)">&#8250;</button>
+      </span>
+    </h2>
+    <div id="cal-wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;"></div>
+    <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;font-size:12px;color:#4a5568;">
+      <span><span class="cal-legend cal-free"></span> Voľné</span>
+      <span><span class="cal-legend cal-busy"></span> Obsadené</span>
+      <span><span class="cal-legend cal-today"></span> Dnes</span>
+      <span><span class="cal-legend cal-past"></span> Minulosť</span>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
+      <div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">+ Pridať rezerváciu manuálne</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end;flex-wrap:wrap;">
+        <div class="field"><label>Od</label><input type="date" id="res_od"></div>
+        <div class="field"><label>Do</label><input type="date" id="res_do"></div>
+        <div class="field"><label>Meno</label><input type="text" id="res_meno" placeholder="Klient"></div>
+        <button class="btn-export primary" style="height:40px;margin-bottom:0;" onclick="addManualReservation()">Pridať</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /container -->
 
 <script>
@@ -1087,6 +1166,7 @@
 
     // Auto-download PDF after render
     setTimeout(exportPDF, 800);
+    renderCalendar();
   }
 
   function goBack() {
@@ -1180,6 +1260,138 @@
     a.href = url; a.download = 'prenajom_zmluvy.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
+
+  // ── KALENDÁR ─────────────────────────────────────────────────────────────────
+
+  let calOffset = 0;
+  const SK_MONTHS = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
+  const SK_DAYS = ['Po','Ut','St','Št','Pi','So','Ne'];
+
+  function parseDMY(str) {
+    if (!str) return null;
+    const p = str.split('.');
+    if (p.length !== 3) return null;
+    const d = new Date(+p[2], +p[1]-1, +p[0]);
+    return isNaN(d) ? null : d;
+  }
+
+  function dateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function getOccupiedMap() {
+    const data = JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]');
+    const map = {};
+    data.forEach(r => {
+      const from = parseDMY(r.od), to = parseDMY(r.do);
+      if (!from || !to) return;
+      const label = (r.meno && r.priezvisko) ? r.meno + ' ' + r.priezvisko : (r.meno || r.label || '');
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate()+1)) {
+        const k = dateKey(new Date(d));
+        map[k] = { label, isStart: +d === +from, isEnd: +d === +to };
+      }
+    });
+    return map;
+  }
+
+  function renderCalMonth(year, month, map) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const div = document.createElement('div');
+    div.className = 'cal-month';
+
+    const title = document.createElement('div');
+    title.className = 'cal-title';
+    title.textContent = SK_MONTHS[month] + ' ' + year;
+    div.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+
+    SK_DAYS.forEach(d => {
+      const dow = document.createElement('div');
+      dow.className = 'cal-dow';
+      dow.textContent = d;
+      grid.appendChild(dow);
+    });
+
+    const firstDay = new Date(year, month, 1);
+    let startDow = firstDay.getDay(); // 0=Sun
+    startDow = startDow === 0 ? 6 : startDow - 1; // convert to Mon=0
+
+    for (let i = 0; i < startDow; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const k = dateKey(date);
+      const info = map[k];
+      const isPast = date < today;
+      const isToday = +date === +today;
+
+      const cell = document.createElement('div');
+      cell.className = 'cal-day';
+      cell.textContent = d;
+
+      if (info) {
+        cell.classList.add('busy');
+        if (info.isStart && info.isEnd) cell.classList.add('busy-start', 'busy-end');
+        else if (info.isStart) cell.classList.add('busy-start');
+        else if (info.isEnd) cell.classList.add('busy-end');
+        else cell.classList.add('busy-mid');
+        if (info.label) cell.title = info.label;
+      } else if (isPast) {
+        cell.classList.add('past');
+      }
+      if (isToday) cell.classList.add('today');
+
+      grid.appendChild(cell);
+    }
+    div.appendChild(grid);
+    return div;
+  }
+
+  function renderCalendar() {
+    const map = getOccupiedMap();
+    const wrapper = document.getElementById('cal-wrapper');
+    if (!wrapper) return;
+    wrapper.innerHTML = '';
+    const now = new Date();
+    for (let i = 0; i < 2; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + calOffset + i, 1);
+      wrapper.appendChild(renderCalMonth(d.getFullYear(), d.getMonth(), map));
+    }
+  }
+
+  function calNav(dir) { calOffset += dir; renderCalendar(); }
+
+  function addManualReservation() {
+    const od = document.getElementById('res_od').value;
+    const doVal = document.getElementById('res_do').value;
+    const meno = document.getElementById('res_meno').value.trim() || 'Rezervácia';
+    if (!od || !doVal) { alert('Zadaj dátum od a do.'); return; }
+    if (od > doVal) { alert('Dátum "Od" musí byť pred "Do".'); return; }
+    const [oy,om,odd] = od.split('-'), [dy,dm,dd] = doVal.split('-');
+    const existing = JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]');
+    existing.push({
+      cislo_zmluvy: 'MAN-' + Date.now(),
+      datum: new Date().toLocaleDateString('sk-SK'),
+      meno: meno, priezvisko: '',
+      od: `${odd}.${om}.${oy}`, do: `${dd}.${dm}.${dy}`,
+      label: meno
+    });
+    localStorage.setItem('prenajom_zmluvy', JSON.stringify(existing));
+    document.getElementById('res_od').value = '';
+    document.getElementById('res_do').value = '';
+    document.getElementById('res_meno').value = '';
+    renderCalendar();
+  }
+
+  // Init calendar on load
+  document.addEventListener('DOMContentLoaded', renderCalendar);
 
   // Show admin CSV button with secret key combo (Shift+Alt+C)
   document.addEventListener('keydown', function(e) {
