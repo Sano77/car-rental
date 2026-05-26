@@ -489,6 +489,35 @@
       #cal-admin-panel > div:nth-child(2) { grid-template-columns: 1fr 1fr !important; }
     }
 
+    /* OCR UPLOAD BLOCK */
+    .ocr-block {
+      background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+      border: 1.5px solid #bee3f8;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 22px;
+    }
+    .ocr-block-header {
+      display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;
+    }
+    .ocr-step-num {
+      width: 28px; height: 28px; min-width: 28px;
+      background: #3182ce; color: white;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .ocr-step-title { font-size: 14px; font-weight: 700; color: #1a365d; margin-bottom: 2px; }
+    .ocr-step-sub   { font-size: 12px; color: #2b6cb0; }
+    .ocr-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 20px 0 18px; color: #718096; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .ocr-divider::before, .ocr-divider::after {
+      content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+    .ocr-block .upload-area p:last-of-type { color: #3182ce; font-weight: 600; font-size: 12px; }
+
     /* OCR */
     .ocr-status {
       margin-top: 8px; padding: 7px 12px; border-radius: 6px;
@@ -556,6 +585,50 @@
     <!-- NÁJOMCA -->
     <div class="card">
       <h2><span class="icon">👤</span> Údaje nájomcu</h2>
+
+      <!-- KROK 1: Doklady -->
+      <div class="ocr-block">
+        <div class="ocr-block-header">
+          <span class="ocr-step-num">1</span>
+          <div>
+            <div class="ocr-step-title">Nahrajte doklady — polia sa vyplnia samy</div>
+            <div class="ocr-step-sub">Odfotte OP a vodičák, zvyšok urobíme za vás. Polia môžete potom skorigovať.</div>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label>📄 Občiansky preukaz / pas <span style="color:#718096;font-weight:400">(predná strana)</span></label>
+            <div class="upload-area" onclick="document.getElementById('doc_op_pred').click()">
+              <div class="icon-upload">📄</div>
+              <p><strong>Kliknite</strong> alebo presuňte fotku</p>
+              <p style="color:#3182ce;font-weight:600;">→ vyplní: meno, OP číslo, dátum nar., adresu</p>
+              <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
+            </div>
+            <div class="file-list" id="list_op_pred"></div>
+            <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
+            <div class="ocr-status" id="ocr-status-op"></div>
+          </div>
+          <div class="field">
+            <label>🪪 Vodičský preukaz <span style="color:#718096;font-weight:400">(predná strana)</span></label>
+            <div class="upload-area" onclick="document.getElementById('doc_vp_pred').click()">
+              <div class="icon-upload">🪪</div>
+              <p><strong>Kliknite</strong> alebo presuňte fotku</p>
+              <p style="color:#3182ce;font-weight:600;">→ vyplní: číslo VP, platnosť</p>
+              <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
+            </div>
+            <div class="file-list" id="list_vp_pred"></div>
+            <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
+            <div class="ocr-status" id="ocr-status-vp"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="ocr-divider">
+        <span>2 &nbsp;—&nbsp; Skontrolujte a doplňte polia</span>
+      </div>
+
+      <!-- KROK 2: Polia -->
       <div class="grid">
         <div class="field">
           <label>Meno <span class="req">*</span></label>
@@ -717,55 +790,25 @@
       </div>
     </div>
 
-    <!-- DOKLADY -->
-    <div class="card">
-      <h2><span class="icon">📎</span> Prílohy a doklady</h2>
-      <p style="font-size:13px; color:#718096; margin-bottom:16px;">Nahrajte skeny alebo fotky požadovaných dokladov.</p>
-      <div class="notice" style="margin-bottom:16px;">
-        🤖 Po nahratí fotky dokladu sa údaje <strong>automaticky vyplnia</strong> do formulára (OCR). Skontrolujte ich a prípadne opravte.
-      </div>
+    <!-- DOKLADY – zadné strany pre archív -->
+    <div class="card" style="border:1.5px dashed #cbd5e0;">
+      <h2><span class="icon">📎</span> Prílohy pre archív <span style="font-size:12px;font-weight:400;color:#718096;margin-left:8px;">(nepovinné)</span></h2>
+      <p style="font-size:13px;color:#718096;margin-bottom:16px;">Zadné strany dokladov — len na uloženie, bez automatického čítania.</p>
       <div class="grid">
         <div class="field">
-          <label>Občiansky preukaz / pas (predná strana)</label>
-          <div class="upload-area" onclick="document.getElementById('doc_op_pred').click()">
-            <div class="icon-upload">📄</div>
-            <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
-          </div>
-          <div class="file-list" id="list_op_pred"></div>
-          <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
-          <div class="ocr-status" id="ocr-status-op"></div>
-        </div>
-        <div class="field">
-          <label>Občiansky preukaz / pas (zadná strana)</label>
+          <label>OP / pas — zadná strana</label>
           <div class="upload-area" onclick="document.getElementById('doc_op_zad').click()">
             <div class="icon-upload">📄</div>
             <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_op_zad" accept="image/*" onchange="showFiles(this,'list_op_zad'); ocrDocument(this,'op_zad')">
+            <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
           </div>
           <div class="file-list" id="list_op_zad"></div>
-          <div class="ocr-status" id="ocr-status-op-zad"></div>
         </div>
         <div class="field">
-          <label>Vodičský preukaz (predná strana)</label>
-          <div class="upload-area" onclick="document.getElementById('doc_vp_pred').click()">
-            <div class="icon-upload">🪪</div>
-            <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
-          </div>
-          <div class="file-list" id="list_vp_pred"></div>
-          <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
-          <div class="ocr-status" id="ocr-status-vp"></div>
-        </div>
-        <div class="field">
-          <label>Vodičský preukaz (zadná strana)</label>
+          <label>Vodičský preukaz — zadná strana</label>
           <div class="upload-area" onclick="document.getElementById('doc_vp_zad').click()">
             <div class="icon-upload">🪪</div>
             <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <p>JPG, PNG, PDF</p>
             <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
           </div>
           <div class="file-list" id="list_vp_zad"></div>
