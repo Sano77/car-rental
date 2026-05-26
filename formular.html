@@ -1597,6 +1597,57 @@
     });
   }
 
+  // ── Image preprocessing ───────────────────────────────────────────────────────
+  // Converts image file → preprocessed canvas blob for better OCR accuracy.
+  // Steps: resize to min 1600px wide, grayscale, contrast+brightness boost.
+  function preprocessImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MIN_WIDTH = 1600;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w < MIN_WIDTH) { h = Math.round(h * MIN_WIDTH / w); w = MIN_WIDTH; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+
+        // Draw original
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Grayscale + contrast filter
+        ctx.filter = 'grayscale(100%) contrast(160%) brightness(110%)';
+        ctx.drawImage(canvas, 0, 0);
+        ctx.filter = 'none';
+
+        // Sharpen via convolution
+        const src = ctx.getImageData(0, 0, w, h);
+        const dst = ctx.createImageData(w, h);
+        const kernel = [0,-1,0,-1,5,-1,0,-1,0];
+        const d = src.data;
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            for (let c = 0; c < 3; c++) {
+              let v = 0;
+              for (let ky = -1; ky <= 1; ky++)
+                for (let kx = -1; kx <= 1; kx++)
+                  v += d[((y+ky)*w+(x+kx))*4+c] * kernel[(ky+1)*3+(kx+1)];
+              dst.data[(y*w+x)*4+c] = Math.max(0, Math.min(255, v));
+            }
+            dst.data[(y*w+x)*4+3] = 255;
+          }
+        }
+        ctx.putImageData(dst, 0, 0);
+
+        canvas.toBlob(blob => resolve(blob || file), 'image/png');
+      };
+      img.onerror = () => resolve(file);
+      img.src = url;
+    });
+  }
+
   function setOcrStatus(id, cls, msg) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1656,18 +1707,41 @@
 
   function capitalize(s) {
     if (!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    // Handle multi-word names: capitalize each word
+    return s.toLowerCase().replace(/(^|\s|-)(\S)/g, (_, pre, ch) => pre + ch.toUpperCase());
+  }
+
+  function cleanMrzLine(raw) {
+    return raw
+      .replace(/\s+/g, '')           // remove all spaces
+      .toUpperCase()
+      // Common OCR substitutions in MRZ zone
+      .replace(/[oQ]/g,  '0')
+      .replace(/[lI|!]/g,'1')
+      .replace(/[Ss§]/g, '5')
+      .replace(/[Bb]/g,  '8')
+      .replace(/[Zz]/g,  '2')
+      .replace(/[Gg]/g,  '6')
+      .replace(/[Tt]/g,  '7')
+      .replace(/[Uu]/g,  'U')        // keep U as U
+      .replace(/[^A-Z0-9<]/g, '<'); // any remaining garbage → filler
   }
 
   function parseMRZ(text) {
-    const lines = text.split('\n')
-      .map(l => l.replace(/\s+/g,'').replace(/[oO]/g,'0').replace(/[lI]/g,'1').toUpperCase())
+    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // Clean each line for MRZ detection
+    const lines = rawLines.map(cleanMrzLine)
       .filter(l => l.length >= 27 && /^[A-Z0-9<]{27,}$/.test(l));
 
     if (!lines.length) return null;
 
-    // TD1: 3 lines × 30 chars (Slovak OP)
-    const td1_1 = lines.find(l => l.length >= 30 && (l.startsWith('ID') || l.startsWith('AC') || l.startsWith('I<')));
+    // TD1: 3 lines × 30 chars (Slovak OP / ID card)
+    // First line starts with I, ID, AC or similar country+type combo
+    const td1_1 = lines.find(l =>
+      l.length >= 28 &&
+      (/^I[A-Z0-9<]/.test(l) || /^A[C-Z]/.test(l))
+    );
     const td1_idx = td1_1 ? lines.indexOf(td1_1) : -1;
     if (td1_1 && lines[td1_idx+1] && lines[td1_idx+2]) {
       const l1 = td1_1.padEnd(30,'<').slice(0,30);
@@ -1677,11 +1751,13 @@
       const dob     = mrzDateToISO(l2.slice(0,6));
       const expiry  = mrzDateToISO(l2.slice(8,14));
       const names   = mrzNamesFromLine(l3);
-      return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
+      if (docNum.length >= 4 && (dob || names.surname)) {
+        return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
+      }
     }
 
-    // TD3: 2 lines × 44 chars (passport P<)
-    const td3_1 = lines.find(l => l.length >= 44 && l.startsWith('P<'));
+    // TD3: 2 lines × 44 chars (passport)
+    const td3_1 = lines.find(l => l.length >= 44 && /^P[A-Z<]/.test(l));
     const td3_idx = td3_1 ? lines.indexOf(td3_1) : -1;
     if (td3_1 && lines[td3_idx+1]) {
       const l1 = td3_1.slice(0,44);
@@ -1693,48 +1769,105 @@
       return { type:'passport', docNum, dob, expiry, surname: names.surname, given: names.given };
     }
 
+    // TD2: 2 lines × 36 chars (some EU ID cards)
+    const td2_1 = lines.find(l => l.length >= 36 && /^I[A-Z0-9<]/.test(l));
+    const td2_idx = td2_1 ? lines.indexOf(td2_1) : -1;
+    if (td2_1 && lines[td2_idx+1]) {
+      const l1 = td2_1.padEnd(36,'<').slice(0,36);
+      const l2 = lines[td2_idx+1].padEnd(36,'<').slice(0,36);
+      const names  = mrzNamesFromLine(l1.slice(5));
+      const docNum = l2.slice(0,9).replace(/</g,'');
+      const dob    = mrzDateToISO(l2.slice(13,19));
+      const expiry = mrzDateToISO(l2.slice(21,27));
+      if (docNum.length >= 4 && (dob || names.surname)) {
+        return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
+      }
+    }
+
     return null;
   }
 
   // ── Visual text parser (fallback) ────────────────────────────────────────────
 
+  // Extract value: either on next line, or after colon/space on same line
+  function extractAfterLabel(line, nextLine) {
+    const colonSplit = line.match(/[:]\s*(.+)/);
+    if (colonSplit && colonSplit[1].trim().length > 1) return colonSplit[1].trim();
+    if (nextLine && nextLine.length > 1) return nextLine;
+    return '';
+  }
+
   function parseVisualOP(text) {
     const result = {};
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const full = text.toUpperCase();
 
-    // Date patterns DD.MM.YYYY or DD. MM. YYYY
-    const dates = [...text.matchAll(/\b(\d{1,2})[.\s]+(\d{1,2})[.\s]+(\d{4})\b/g)]
-      .map(m => `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);
+    // All dates in document: DD.MM.YYYY or DD. MM. YYYY or DD/MM/YYYY
+    const dates = [...text.matchAll(/\b(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})\b/g)]
+      .map(m => `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`)
+      .filter(d => {
+        const [y,mo,dy] = d.split('-').map(Number);
+        return y >= 1900 && y <= 2100 && mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31;
+      });
 
-    // Slovak OP field labels
     for (let i = 0; i < lines.length; i++) {
       const u = lines[i].toUpperCase();
       const next = lines[i+1] || '';
+      const nextu = next.toUpperCase();
 
-      if (/PRIEZVISKO|SURNAME/.test(u) && next && !/PRIEZVISKO|SURNAME|MENO|NAME/.test(next.toUpperCase())) {
-        result.priezvisko = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim());
+      // Priezvisko / Surname
+      if (/PRIEZVISKO|SURNAME/.test(u) && !result.priezvisko) {
+        const val = extractAfterLabel(lines[i], next);
+        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s\-]/g,'').trim();
+        if (clean && !/PRIEZVISKO|SURNAME|MENO|NAME|GIVEN/.test(clean.toUpperCase()))
+          result.priezvisko = capitalize(clean);
       }
-      if (/^MENO|GIVEN NAME/.test(u) && next && !/MENO|PRIEZVISKO/.test(next.toUpperCase())) {
-        result.meno = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim().split(' ')[0]);
+
+      // Meno / Given name (avoid matching "Priezvisko a meno")
+      if (/^MENO|GIVEN NAME|^2\.?\s*MENO/.test(u) && !result.meno) {
+        const val = extractAfterLabel(lines[i], next);
+        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s\-]/g,'').trim().split(/\s+/)[0];
+        if (clean && !/PRIEZVISKO|MENO|SURNAME/.test(clean.toUpperCase()))
+          result.meno = capitalize(clean);
       }
-      if (/DÁTUM NARODENIA|DATE OF BIRTH|DATUM/.test(u) && dates.length) {
-        if (!result.dob) result.dob = dates[0];
+
+      // Dátum narodenia / Date of birth
+      if (/D[AÁ]TUM\s*NAROD|DATE\s*OF\s*BIRTH|BIRTH\s*DATE/.test(u) && !result.dob) {
+        // Try same line first, then next
+        const lineText = lines[i] + ' ' + next;
+        const dm = lineText.match(/(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})/);
+        if (dm) result.dob = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
+        else if (dates.length) result.dob = dates[0];
       }
-      if (/ADRESA|ADDRESS/.test(u) && next) {
-        result.adresa = next.trim();
-        if (lines[i+2] && /\d{3}\s?\d{2}/.test(lines[i+2])) {
-          result.adresa += ', ' + lines[i+2].trim();
+
+      // Adresa / Address (back of OP)
+      if (/^ADRESA|^ADDRESS|^TRVALÝ\s*POBYT|^MIESTO\s*POBYTU/.test(u) && !result.adresa) {
+        let addr = next.trim();
+        // Collect continuation lines (street + PSČ mesto)
+        if (addr && lines[i+2] && /\d{3}\s?\d{2}/.test(lines[i+2])) {
+          addr += ', ' + lines[i+2].trim();
+        } else if (addr && lines[i+2] && !/^[A-ZÁČĎÉÍĽŇÓŠŤÚÝŽ]{4,}/.test(lines[i+2].toUpperCase())) {
+          // Append if it looks like continuation (not a new label)
         }
+        if (addr) result.adresa = addr;
       }
     }
 
-    // ID number: 2 letters + 5-7 digits (Slovak OP)
-    const opMatch = text.match(/\b([A-Z]{1,2}\s?\d{6,8})\b/);
-    if (opMatch) result.docNum = opMatch[1].replace(/\s/g,'');
+    // Slovak OP number: 2 letters + 6 digits (e.g. AB123456) or similar
+    if (!result.docNum) {
+      const opMatch = text.match(/\b([A-ZÁČĎÉÍĽŇÓŠŤÚÝŽ]{2}\d{6})\b/i)
+                   || text.match(/\b([A-Z]{1,2}[ ]?\d{6,8})\b/);
+      if (opMatch) result.docNum = opMatch[1].replace(/\s/g,'').toUpperCase();
+    }
 
-    // Date of birth from dates array if not found by label
-    if (!result.dob && dates.length > 0) result.dob = dates[0];
+    // Fallback: use earliest date as DOB if nothing found
+    if (!result.dob && dates.length > 0) {
+      // Prefer dates that look like birth years (1950-2010)
+      const dob = dates.find(d => {
+        const y = parseInt(d.slice(0,4));
+        return y >= 1940 && y <= 2010;
+      });
+      result.dob = dob || dates[0];
+    }
 
     return result;
   }
@@ -1747,30 +1880,37 @@
       const u = lines[i].toUpperCase();
       const next = lines[i+1] || '';
 
-      // Field 1. Priezvisko
-      if (/^1[.\s]/.test(lines[i]) && next) {
-        result.priezvisko = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim());
+      // Field 1. Priezvisko — may be "1." or "1" on same line as value
+      if (/^1[.\s]/.test(lines[i])) {
+        const val = extractAfterLabel(lines[i], next);
+        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s-]/g,'').trim();
+        if (clean && !result.priezvisko) result.priezvisko = capitalize(clean);
       }
       // Field 2. Meno
-      if (/^2[.\s]/.test(lines[i]) && next) {
-        result.meno = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim().split(' ')[0]);
+      if (/^2[.\s]/.test(lines[i])) {
+        const val = extractAfterLabel(lines[i], next);
+        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s-]/g,'').trim().split(/\s+/)[0];
+        if (clean && !result.meno) result.meno = capitalize(clean);
       }
-      // Field 5. VP číslo
-      if (/^5[.\s]/.test(lines[i]) && next) {
-        const vpNum = next.match(/[A-Z]{0,2}\d{6,10}/i);
-        if (vpNum) result.vpNum = vpNum[0].toUpperCase();
+      // Field 5. VP číslo (number on same or next line)
+      if (/^5[.\s]/.test(lines[i])) {
+        const combined = lines[i] + ' ' + next;
+        const vpNum = combined.match(/\b([A-Z]{0,3}[\s-]?\d{5,10})\b/i);
+        if (vpNum) result.vpNum = vpNum[1].replace(/[\s-]/g,'').toUpperCase();
       }
-      // Expiry 4b
-      if (/^4B|PLATNOSŤ DO|EXPIRY/.test(u) && next) {
-        const dm = next.match(/(\d{1,2})[.\s]+(\d{1,2})[.\s]+(\d{4})/);
-        if (dm) result.vpExpiry = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
+      // Field 4b / platnosť / expiry — accept various label formats
+      if (/^4[Bb][.\s]|PLATNOSŤ\s*DO|EXPIRY|VALID\s*UNTIL/.test(u)) {
+        const combined = lines[i] + ' ' + next;
+        const dm = combined.match(/(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})/);
+        if (dm && !result.vpExpiry)
+          result.vpExpiry = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
       }
     }
 
-    // VP number fallback: pattern like AA123456 or SK123456789
+    // VP number fallback: AA123456 or SK123456789
     if (!result.vpNum) {
-      const m = text.match(/\b([A-Z]{2}\d{6,9})\b/);
-      if (m) result.vpNum = m[1];
+      const m = text.match(/\b([A-Z]{2}[\s-]?\d{6,9})\b/);
+      if (m) result.vpNum = m[1].replace(/[\s-]/g,'').toUpperCase();
     }
 
     return result;
@@ -1793,15 +1933,26 @@
     try {
       await loadTesseract();
 
+      setOcrStatus(statusId, 'loading', '🔧 Pripravujem obrázok...');
+      const processedBlob = await preprocessImage(file);
+      setOcrStatus(statusId, 'loading', '🔍 Čítam doklad...');
+
       const worker = await Tesseract.createWorker(['slk', 'eng'], 1, {
         logger: m => {
           if (m.status === 'recognizing text') {
-            setOcrProgress(barId, progId, Math.round(m.progress * 90) + 5);
+            setOcrProgress(barId, progId, Math.round(m.progress * 85) + 10);
           }
         }
       });
 
-      const { data: { text } } = await worker.recognize(file);
+      // PSM 6 = assume uniform block of text (best for ID cards)
+      await worker.setParameters({
+        tessedit_pageseg_mode: '6',
+        tessedit_char_whitelist: '',
+        preserve_interword_spaces: '1',
+      });
+
+      const { data: { text } } = await worker.recognize(processedBlob);
       await worker.terminate();
       setOcrProgress(barId, progId, 100);
 
