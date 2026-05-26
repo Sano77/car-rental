@@ -489,6 +489,29 @@
       #cal-admin-panel > div:nth-child(2) { grid-template-columns: 1fr 1fr !important; }
     }
 
+    /* OCR */
+    .ocr-status {
+      margin-top: 8px; padding: 7px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 600; display: none;
+    }
+    .ocr-status.loading { display:block; background:#ebf8ff; color:#2b6cb0; }
+    .ocr-status.success { display:block; background:#f0fff4; color:#276749; }
+    .ocr-status.warn    { display:block; background:#fffbea; color:#744210; }
+    .ocr-status.error   { display:block; background:#fff5f5; color:#c53030; }
+    .field input.ocr-filled {
+      border-color: #38a169 !important;
+      background: #f0fff4 !important;
+      transition: border-color 0.4s, background 0.4s;
+    }
+    .ocr-progress {
+      height: 3px; background: #bee3f8; border-radius: 2px;
+      margin-top: 4px; overflow: hidden; display: none;
+    }
+    .ocr-progress-bar {
+      height: 100%; background: #3182ce;
+      transition: width 0.3s; width: 0%;
+    }
+
     /* CSV ADMIN */
     #csv-admin { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #1a1a2e; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
@@ -698,6 +721,9 @@
     <div class="card">
       <h2><span class="icon">📎</span> Prílohy a doklady</h2>
       <p style="font-size:13px; color:#718096; margin-bottom:16px;">Nahrajte skeny alebo fotky požadovaných dokladov.</p>
+      <div class="notice" style="margin-bottom:16px;">
+        🤖 Po nahratí fotky dokladu sa údaje <strong>automaticky vyplnia</strong> do formulára (OCR). Skontrolujte ich a prípadne opravte.
+      </div>
       <div class="grid">
         <div class="field">
           <label>Občiansky preukaz / pas (predná strana)</label>
@@ -705,9 +731,11 @@
             <div class="icon-upload">📄</div>
             <p><strong>Kliknite</strong> alebo presuňte súbor</p>
             <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_op_pred" accept="image/*,.pdf" onchange="showFiles(this,'list_op_pred')">
+            <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
           </div>
           <div class="file-list" id="list_op_pred"></div>
+          <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
+          <div class="ocr-status" id="ocr-status-op"></div>
         </div>
         <div class="field">
           <label>Občiansky preukaz / pas (zadná strana)</label>
@@ -715,9 +743,10 @@
             <div class="icon-upload">📄</div>
             <p><strong>Kliknite</strong> alebo presuňte súbor</p>
             <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
+            <input type="file" id="doc_op_zad" accept="image/*" onchange="showFiles(this,'list_op_zad'); ocrDocument(this,'op_zad')">
           </div>
           <div class="file-list" id="list_op_zad"></div>
+          <div class="ocr-status" id="ocr-status-op-zad"></div>
         </div>
         <div class="field">
           <label>Vodičský preukaz (predná strana)</label>
@@ -725,9 +754,11 @@
             <div class="icon-upload">🪪</div>
             <p><strong>Kliknite</strong> alebo presuňte súbor</p>
             <p>JPG, PNG, PDF</p>
-            <input type="file" id="doc_vp_pred" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_pred')">
+            <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
           </div>
           <div class="file-list" id="list_vp_pred"></div>
+          <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
+          <div class="ocr-status" id="ocr-status-vp"></div>
         </div>
         <div class="field">
           <label>Vodičský preukaz (zadná strana)</label>
@@ -1490,6 +1521,285 @@
       renderResList();
     }
   });
+
+  // ── OCR ──────────────────────────────────────────────────────────────────────
+
+  let _tesseractLoaded = false;
+
+  function loadTesseract() {
+    if (_tesseractLoaded) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => { _tesseractLoaded = true; res(); };
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  function setOcrStatus(id, cls, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'ocr-status ' + cls;
+    el.textContent = msg;
+  }
+
+  function setOcrProgress(barId, progId, pct) {
+    const bar = document.getElementById(barId);
+    const prog = document.getElementById(progId);
+    if (!bar || !prog) return;
+    prog.style.display = pct > 0 && pct < 100 ? 'block' : 'none';
+    bar.style.width = pct + '%';
+  }
+
+  function fillField(id, value) {
+    if (!value) return false;
+    const el = document.getElementById(id);
+    if (!el || el.value) return false; // don't overwrite existing
+    el.value = value;
+    el.classList.add('ocr-filled');
+    setTimeout(() => el.classList.remove('ocr-filled'), 3000);
+    return true;
+  }
+
+  function forceField(id, value) { // always overwrite
+    if (!value) return false;
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.value = value;
+    el.classList.add('ocr-filled');
+    setTimeout(() => el.classList.remove('ocr-filled'), 3000);
+    return true;
+  }
+
+  // ── MRZ Parser ───────────────────────────────────────────────────────────────
+  // Supports TD1 (ID card, 3×30) and TD3 (passport, 2×44)
+
+  function mrzDateToISO(s) { // YYMMDD → YYYY-MM-DD
+    if (!s || s.length < 6) return null;
+    const yy = parseInt(s.slice(0,2));
+    const mm = s.slice(2,4);
+    const dd = s.slice(4,6);
+    if (isNaN(yy) || mm < '01' || mm > '12' || dd < '01' || dd > '31') return null;
+    const year = yy <= 30 ? 2000 + yy : 1900 + yy;
+    return `${year}-${mm}-${dd}`;
+  }
+
+  function mrzNamesFromLine(nameLine) {
+    // Format: SURNAME<<GIVEN<NAMES or SURNAME<<GIVEN
+    const clean = nameLine.replace(/[^A-Z<]/g, '');
+    const parts = clean.split('<<');
+    const surname = (parts[0] || '').replace(/</g,' ').trim();
+    const given   = (parts[1] || '').replace(/</g,' ').trim().split(' ')[0];
+    return { surname, given };
+  }
+
+  function capitalize(s) {
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  function parseMRZ(text) {
+    const lines = text.split('\n')
+      .map(l => l.replace(/\s+/g,'').replace(/[oO]/g,'0').replace(/[lI]/g,'1').toUpperCase())
+      .filter(l => l.length >= 27 && /^[A-Z0-9<]{27,}$/.test(l));
+
+    if (!lines.length) return null;
+
+    // TD1: 3 lines × 30 chars (Slovak OP)
+    const td1_1 = lines.find(l => l.length >= 30 && (l.startsWith('ID') || l.startsWith('AC') || l.startsWith('I<')));
+    const td1_idx = td1_1 ? lines.indexOf(td1_1) : -1;
+    if (td1_1 && lines[td1_idx+1] && lines[td1_idx+2]) {
+      const l1 = td1_1.padEnd(30,'<').slice(0,30);
+      const l2 = lines[td1_idx+1].padEnd(30,'<').slice(0,30);
+      const l3 = lines[td1_idx+2].padEnd(30,'<').slice(0,30);
+      const docNum  = l1.slice(5,14).replace(/</g,'');
+      const dob     = mrzDateToISO(l2.slice(0,6));
+      const expiry  = mrzDateToISO(l2.slice(8,14));
+      const names   = mrzNamesFromLine(l3);
+      return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
+    }
+
+    // TD3: 2 lines × 44 chars (passport P<)
+    const td3_1 = lines.find(l => l.length >= 44 && l.startsWith('P<'));
+    const td3_idx = td3_1 ? lines.indexOf(td3_1) : -1;
+    if (td3_1 && lines[td3_idx+1]) {
+      const l1 = td3_1.slice(0,44);
+      const l2 = lines[td3_idx+1].slice(0,44);
+      const names   = mrzNamesFromLine(l1.slice(5));
+      const docNum  = l2.slice(0,9).replace(/</g,'');
+      const dob     = mrzDateToISO(l2.slice(13,19));
+      const expiry  = mrzDateToISO(l2.slice(21,27));
+      return { type:'passport', docNum, dob, expiry, surname: names.surname, given: names.given };
+    }
+
+    return null;
+  }
+
+  // ── Visual text parser (fallback) ────────────────────────────────────────────
+
+  function parseVisualOP(text) {
+    const result = {};
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const full = text.toUpperCase();
+
+    // Date patterns DD.MM.YYYY or DD. MM. YYYY
+    const dates = [...text.matchAll(/\b(\d{1,2})[.\s]+(\d{1,2})[.\s]+(\d{4})\b/g)]
+      .map(m => `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);
+
+    // Slovak OP field labels
+    for (let i = 0; i < lines.length; i++) {
+      const u = lines[i].toUpperCase();
+      const next = lines[i+1] || '';
+
+      if (/PRIEZVISKO|SURNAME/.test(u) && next && !/PRIEZVISKO|SURNAME|MENO|NAME/.test(next.toUpperCase())) {
+        result.priezvisko = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim());
+      }
+      if (/^MENO|GIVEN NAME/.test(u) && next && !/MENO|PRIEZVISKO/.test(next.toUpperCase())) {
+        result.meno = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim().split(' ')[0]);
+      }
+      if (/DÁTUM NARODENIA|DATE OF BIRTH|DATUM/.test(u) && dates.length) {
+        if (!result.dob) result.dob = dates[0];
+      }
+      if (/ADRESA|ADDRESS/.test(u) && next) {
+        result.adresa = next.trim();
+        if (lines[i+2] && /\d{3}\s?\d{2}/.test(lines[i+2])) {
+          result.adresa += ', ' + lines[i+2].trim();
+        }
+      }
+    }
+
+    // ID number: 2 letters + 5-7 digits (Slovak OP)
+    const opMatch = text.match(/\b([A-Z]{1,2}\s?\d{6,8})\b/);
+    if (opMatch) result.docNum = opMatch[1].replace(/\s/g,'');
+
+    // Date of birth from dates array if not found by label
+    if (!result.dob && dates.length > 0) result.dob = dates[0];
+
+    return result;
+  }
+
+  function parseVisualVP(text) {
+    const result = {};
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    for (let i = 0; i < lines.length; i++) {
+      const u = lines[i].toUpperCase();
+      const next = lines[i+1] || '';
+
+      // Field 1. Priezvisko
+      if (/^1[.\s]/.test(lines[i]) && next) {
+        result.priezvisko = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim());
+      }
+      // Field 2. Meno
+      if (/^2[.\s]/.test(lines[i]) && next) {
+        result.meno = capitalize(next.replace(/[^A-Za-zÀ-ž\s-]/g,'').trim().split(' ')[0]);
+      }
+      // Field 5. VP číslo
+      if (/^5[.\s]/.test(lines[i]) && next) {
+        const vpNum = next.match(/[A-Z]{0,2}\d{6,10}/i);
+        if (vpNum) result.vpNum = vpNum[0].toUpperCase();
+      }
+      // Expiry 4b
+      if (/^4B|PLATNOSŤ DO|EXPIRY/.test(u) && next) {
+        const dm = next.match(/(\d{1,2})[.\s]+(\d{1,2})[.\s]+(\d{4})/);
+        if (dm) result.vpExpiry = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
+      }
+    }
+
+    // VP number fallback: pattern like AA123456 or SK123456789
+    if (!result.vpNum) {
+      const m = text.match(/\b([A-Z]{2}\d{6,9})\b/);
+      if (m) result.vpNum = m[1];
+    }
+
+    return result;
+  }
+
+  // ── Main OCR entry point ─────────────────────────────────────────────────────
+
+  async function ocrDocument(inputEl, docType) {
+    const file = inputEl.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const statusId = docType === 'op' ? 'ocr-status-op' :
+                     docType === 'op_zad' ? 'ocr-status-op-zad' : 'ocr-status-vp';
+    const barId    = docType === 'vp' ? 'ocr-bar-vp' : 'ocr-bar-op';
+    const progId   = docType === 'vp' ? 'ocr-prog-vp' : 'ocr-prog-op';
+
+    setOcrStatus(statusId, 'loading', '🔍 Čítam doklad...');
+    setOcrProgress(barId, progId, 5);
+
+    try {
+      await loadTesseract();
+
+      const worker = await Tesseract.createWorker(['slk', 'eng'], 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(barId, progId, Math.round(m.progress * 90) + 5);
+          }
+        }
+      });
+
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+      setOcrProgress(barId, progId, 100);
+
+      let filled = 0;
+
+      if (docType === 'op') {
+        // 1. Try MRZ first
+        const mrz = parseMRZ(text);
+        if (mrz) {
+          filled += fillField('n_priezvisko', capitalize(mrz.surname)) ? 1 : 0;
+          filled += fillField('n_meno',       capitalize(mrz.given))   ? 1 : 0;
+          filled += fillField('n_datnar',      mrz.dob)                ? 1 : 0;
+          filled += fillField('n_op',          mrz.docNum)             ? 1 : 0;
+        }
+        // 2. Visual fallback for missing fields
+        const vis = parseVisualOP(text);
+        if (!document.getElementById('n_priezvisko').value)
+          filled += fillField('n_priezvisko', vis.priezvisko) ? 1 : 0;
+        if (!document.getElementById('n_meno').value)
+          filled += fillField('n_meno', vis.meno) ? 1 : 0;
+        if (!document.getElementById('n_datnar').value)
+          filled += fillField('n_datnar', vis.dob) ? 1 : 0;
+        if (!document.getElementById('n_op').value)
+          filled += fillField('n_op', vis.docNum) ? 1 : 0;
+        if (!document.getElementById('n_adresa').value && vis.adresa)
+          filled += fillField('n_adresa', vis.adresa) ? 1 : 0;
+
+      } else if (docType === 'op_zad') {
+        const vis = parseVisualOP(text);
+        filled += fillField('n_adresa', vis.adresa) ? 1 : 0;
+
+      } else if (docType === 'vp') {
+        const mrz = parseMRZ(text);
+        const vis = parseVisualVP(text);
+        const vpNum = (mrz && mrz.docNum) || vis.vpNum;
+        filled += fillField('n_vp', vpNum) ? 1 : 0;
+        filled += fillField('n_vp_platnost', vis.vpExpiry) ? 1 : 0;
+        // Fill name if still empty
+        if (!document.getElementById('n_priezvisko').value)
+          filled += fillField('n_priezvisko', vis.priezvisko || (mrz && capitalize(mrz.surname))) ? 1 : 0;
+        if (!document.getElementById('n_meno').value)
+          filled += fillField('n_meno', vis.meno || (mrz && capitalize(mrz.given))) ? 1 : 0;
+      }
+
+      setTimeout(() => setOcrProgress(barId, progId, 0), 600);
+
+      if (filled > 0) {
+        setOcrStatus(statusId, 'success', `✅ Vyplnených ${filled} polí automaticky — skontrolujte prosím`);
+      } else {
+        setOcrStatus(statusId, 'warn', '⚠️ Nepodarilo sa rozpoznať. Skúste ostrejšiu fotku alebo vyplňte ručne.');
+      }
+
+    } catch(e) {
+      console.error('OCR error:', e);
+      setOcrProgress(barId, progId, 0);
+      setOcrStatus(statusId, 'error', '❌ Chyba pri čítaní dokladu.');
+    }
+  }
 
   // Init calendar on load
   document.addEventListener('DOMContentLoaded', renderCalendar);
