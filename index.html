@@ -463,10 +463,30 @@
     .cal-busy { background: #1a1a2e; }
     .cal-today { background: white; outline: 2.5px solid #3182ce; }
     .cal-past { background: #f0f0f0; }
+    .cal-res-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 8px;
+      background: #f8fafc; margin-bottom: 6px;
+      font-size: 13px; border: 1px solid #e2e8f0;
+    }
+    .cal-res-item .res-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .res-badge.zmluva { background: #1a1a2e; color: white; }
+    .res-badge.manual { background: #e2e8f0; color: #4a5568; }
+    .cal-res-item .res-dates { color: #718096; font-size: 12px; }
+    .cal-res-item .res-name { font-weight: 600; flex: 1; }
+    .btn-del {
+      background: none; border: none; cursor: pointer;
+      color: #e53e3e; font-size: 18px; line-height: 1;
+      padding: 2px 6px; border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .btn-del:hover { background: #fff5f5; }
     @media (max-width: 600px) {
       #cal-wrapper { grid-template-columns: 1fr !important; }
-      #calendar-section .field { grid-column: 1 / -1; }
-      #calendar-section > div > div:last-child { grid-template-columns: 1fr 1fr !important; }
+      #cal-admin-panel > div:nth-child(2) { grid-template-columns: 1fr 1fr !important; }
     }
 
     /* CSV ADMIN */
@@ -857,6 +877,7 @@
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;">
         <button class="cal-nav" onclick="calNav(-1)">&#8249;</button>
         <button class="cal-nav" onclick="calNav(1)">&#8250;</button>
+        <button class="cal-nav" id="cal-lock-btn" onclick="calToggleAdmin()" title="Admin" style="width:auto;padding:0 10px;font-size:14px;">🔒</button>
       </span>
     </h2>
     <div id="cal-wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;"></div>
@@ -866,14 +887,22 @@
       <span><span class="cal-legend cal-today"></span> Dnes</span>
       <span><span class="cal-legend cal-past"></span> Minulosť</span>
     </div>
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
-      <div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">+ Pridať rezerváciu manuálne</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end;flex-wrap:wrap;">
+
+    <!-- ADMIN PANEL – skrytý za heslom -->
+    <div id="cal-admin-panel" style="display:none;margin-top:16px;padding-top:16px;border-top:2px solid #1a1a2e;">
+
+      <!-- Pridať -->
+      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">➕ Pridať blokáciu</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
         <div class="field"><label>Od</label><input type="date" id="res_od"></div>
         <div class="field"><label>Do</label><input type="date" id="res_do"></div>
-        <div class="field"><label>Meno</label><input type="text" id="res_meno" placeholder="Klient"></div>
-        <button class="btn-export primary" style="height:40px;margin-bottom:0;" onclick="addManualReservation()">Pridať</button>
+        <div class="field"><label>Popis</label><input type="text" id="res_meno" placeholder="napr. Servis, Dovolenka…"></div>
+        <button class="btn-export primary" style="height:40px;" onclick="addManualReservation()">Pridať</button>
       </div>
+
+      <!-- Zoznam všetkých rezervácií -->
+      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin:18px 0 10px;">📋 Všetky rezervácie / blokácie</div>
+      <div id="cal-res-list"></div>
     </div>
   </div>
 
@@ -1368,11 +1397,73 @@
 
   function calNav(dir) { calOffset += dir; renderCalendar(); }
 
+  // ── ADMIN ────────────────────────────────────────────────────────────────────
+
+  const CAL_PW = 'superbcar';
+  let calAdminUnlocked = sessionStorage.getItem('cal_admin') === '1';
+
+  function calToggleAdmin() {
+    if (calAdminUnlocked) {
+      calAdminUnlocked = false;
+      sessionStorage.removeItem('cal_admin');
+      document.getElementById('cal-admin-panel').style.display = 'none';
+      document.getElementById('cal-lock-btn').textContent = '🔒';
+      document.getElementById('cal-lock-btn').title = 'Admin';
+    } else {
+      const pw = prompt('Heslo:');
+      if (pw === CAL_PW) {
+        calAdminUnlocked = true;
+        sessionStorage.setItem('cal_admin', '1');
+        document.getElementById('cal-admin-panel').style.display = 'block';
+        document.getElementById('cal-lock-btn').textContent = '🔓';
+        document.getElementById('cal-lock-btn').title = 'Odomknuté – klikni pre zamknutie';
+        renderResList();
+      } else if (pw !== null) {
+        alert('Nesprávne heslo.');
+      }
+    }
+  }
+
+  function renderResList() {
+    const list = document.getElementById('cal-res-list');
+    if (!list) return;
+    const data = JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]');
+    if (!data.length) {
+      list.innerHTML = '<div style="font-size:13px;color:#a0aec0;padding:8px 0;">Žiadne záznamy.</div>';
+      return;
+    }
+    // Sort by od date
+    const sorted = [...data].map((r,i) => ({...r, _idx: i})).sort((a,b) => {
+      const pa = parseDMY(a.od), pb = parseDMY(b.od);
+      return (pa||0) - (pb||0);
+    });
+    list.innerHTML = sorted.map(r => {
+      const isManual = (r.cislo_zmluvy || '').startsWith('MAN-');
+      const name = [r.meno, r.priezvisko].filter(Boolean).join(' ') || r.label || '—';
+      return `<div class="cal-res-item">
+        <span class="res-badge ${isManual ? 'manual' : 'zmluva'}">${isManual ? 'manuálne' : 'zmluva'}</span>
+        <span class="res-name">${name}</span>
+        <span class="res-dates">${r.od || '?'} → ${r.do || '?'}</span>
+        <button class="btn-del" onclick="deleteReservation(${r._idx})" title="Odstrániť">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  function deleteReservation(idx) {
+    if (!calAdminUnlocked) return;
+    const data = JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]');
+    data.splice(idx, 1);
+    localStorage.setItem('prenajom_zmluvy', JSON.stringify(data));
+    renderCalendar();
+    renderResList();
+  }
+
   function addManualReservation() {
+    if (!calAdminUnlocked) return;
     const od = document.getElementById('res_od').value;
     const doVal = document.getElementById('res_do').value;
-    const meno = document.getElementById('res_meno').value.trim() || 'Rezervácia';
-    if (!od || !doVal) { alert('Zadaj dátum od a do.'); return; }
+    const meno = document.getElementById('res_meno').value.trim() || 'Blokácia';
+    if (!od || !doVal) { alert('Zadaj dátum Od a Do.'); return; }
     if (od > doVal) { alert('Dátum "Od" musí byť pred "Do".'); return; }
     const [oy,om,odd] = od.split('-'), [dy,dm,dd] = doVal.split('-');
     const existing = JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]');
@@ -1388,7 +1479,17 @@
     document.getElementById('res_do').value = '';
     document.getElementById('res_meno').value = '';
     renderCalendar();
+    renderResList();
   }
+
+  // Restore admin state on load
+  document.addEventListener('DOMContentLoaded', () => {
+    if (calAdminUnlocked) {
+      document.getElementById('cal-admin-panel').style.display = 'block';
+      document.getElementById('cal-lock-btn').textContent = '🔓';
+      renderResList();
+    }
+  });
 
   // Init calendar on load
   document.addEventListener('DOMContentLoaded', renderCalendar);
