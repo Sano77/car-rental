@@ -753,9 +753,25 @@
     <div class="card">
       <h2><span class="icon">💶</span> Cena a platba</h2>
 
+      <!-- CENNÍK (vždy viditeľný) -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:16px;">
+        <div style="font-size:12px; font-weight:700; color:#4a5568; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">💰 Cenník prenájmu</div>
+        <table id="cennik-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; color:#718096; font-weight:600; padding:3px 8px 6px 0; border-bottom:1px solid #e2e8f0;">Doba</th>
+              <th style="text-align:right; color:#718096; font-weight:600; padding:3px 8px 6px; border-bottom:1px solid #e2e8f0;">€ / deň</th>
+              <th style="text-align:right; color:#718096; font-weight:600; padding:3px 0 6px 8px; border-bottom:1px solid #e2e8f0;">km / deň</th>
+            </tr>
+          </thead>
+          <tbody id="cennik-tbody"></tbody>
+        </table>
+        <div style="font-size:11px; color:#a0aec0; margin-top:8px;">Kaucia 300 € · Nadlimit 0,15 € / km · Spoluúčasť 750 €</div>
+      </div>
+
       <!-- CENOVÁ KALKULÁCIA -->
       <div id="price-box" style="display:none; background:#f0f7ff; border:1.5px solid #bee3f8; border-radius:10px; padding:16px; margin-bottom:20px;">
-        <div style="font-size:13px; font-weight:700; color:#2b6cb0; margin-bottom:10px;">💡 Automatická kalkulácia podľa cenníka</div>
+        <div style="font-size:13px; font-weight:700; color:#2b6cb0; margin-bottom:10px;">💡 Vaša kalkulácia</div>
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; font-size:13px;">
           <div><span style="color:#718096">Počet dní:</span><br><strong id="pb_dni">—</strong></div>
           <div><span style="color:#718096">Cena/deň:</span><br><strong id="pb_cena_den">—</strong></div>
@@ -883,7 +899,7 @@
           <h3>Článok IV. — Cena, platba a kaucia</h3>
           <table>
             <tr><th>Položka</th><th>Suma</th></tr>
-            <tr><td>Cena za deň</td><td>podľa cenníka (33–80 € / deň)</td></tr>
+            <tr><td>Cena za deň</td><td>podľa cenníka (35–80 € / deň)</td></tr>
             <tr><td>Nájomné celkom</td><td>počet dní × cena/deň</td></tr>
             <tr><td><b>Celková suma k úhrade</b></td><td><b>nájomné + prípadný dovoz</b></td></tr>
             <tr><td>Kaucia (depozit)</td><td><b>300 €</b></td></tr>
@@ -1020,12 +1036,12 @@
 
   const CENNIK = [
     { maxDni: 1,   cena: 80, km: 250 },
-    { maxDni: 3,   cena: 75, km: 250 },
-    { maxDni: 7,   cena: 65, km: 210 },
+    { maxDni: 4,   cena: 75, km: 230 },
+    { maxDni: 8,   cena: 65, km: 210 },
     { maxDni: 14,  cena: 55, km: 170 },
     { maxDni: 22,  cena: 50, km: 150 },
     { maxDni: 30,  cena: 38, km: 130 },
-    { maxDni: 365, cena: 33, km: 100 },
+    { maxDni: 365, cena: 35, km: 115 },
   ];
 
   function getTier(dni) {
@@ -1060,6 +1076,7 @@
     document.getElementById('f_cena_den').value = tier.cena;
     document.getElementById('t_km_limit').value = tier.km + ' km/deň';
     box.style.display = 'block';
+    highlightCennikRow(tier);
   }
 
   function generateContract() {
@@ -1844,8 +1861,32 @@
     }
   }
 
+  // ── CENNÍK TABLE ─────────────────────────────────────────────────────────────
+  function renderCennikTable() {
+    const tbody = document.getElementById('cennik-tbody');
+    if (!tbody) return;
+    const labels = ['1 deň', '2 – 4 dni', '5 – 8 dní', '9 – 14 dní', '15 – 22 dní', '23 – 30 dní', '31 – 365 dní'];
+    tbody.innerHTML = CENNIK.map((t, i) => `
+      <tr id="cennik-row-${i}">
+        <td style="padding:5px 8px 5px 0; border-bottom:1px solid #f0f0f0;">${labels[i]}</td>
+        <td style="padding:5px 8px; border-bottom:1px solid #f0f0f0; text-align:right; font-weight:600;">${t.cena} €</td>
+        <td style="padding:5px 0 5px 8px; border-bottom:1px solid #f0f0f0; text-align:right; color:#718096;">${t.km} km</td>
+      </tr>`).join('');
+  }
+
+  function highlightCennikRow(tier) {
+    CENNIK.forEach((_, i) => {
+      const row = document.getElementById('cennik-row-' + i);
+      if (!row) return;
+      const isActive = CENNIK[i] === tier;
+      row.style.background = isActive ? '#ebf8ff' : '';
+      row.style.fontWeight = isActive ? '700' : '';
+      row.querySelectorAll('td').forEach(td => td.style.color = isActive ? '#2b6cb0' : '');
+    });
+  }
+
   // Init calendar on load
-  document.addEventListener('DOMContentLoaded', renderCalendar);
+  document.addEventListener('DOMContentLoaded', () => { renderCalendar(); renderCennikTable(); });
 
   // Show admin CSV button with secret key combo (Shift+Alt+C)
   document.addEventListener('keydown', function(e) {
