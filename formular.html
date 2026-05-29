@@ -213,7 +213,7 @@
     /* TLAČ */
     @media print {
       body { background: white; }
-      .header, .zmluva-actions, #formular-container { display: none !important; }
+      .top-bar, .wz-header, .zmluva-actions, #formular-container, .sticky-cta, #calendar-section { display: none !important; }
       #zmluva-container { display: block !important; }
       .container { max-width: 100%; margin: 0; padding: 0; }
       .card { box-shadow: none; border: none; padding: 0; }
@@ -551,396 +551,558 @@
       user-select: none;
     }
     .blur-sensitive:hover, .blur-sensitive.revealed { filter: none; user-select: auto; }
-    .blur-input {
-      filter: blur(4px);
-      transition: filter 0.2s;
-    }
+    .blur-input { filter: blur(4px); transition: filter 0.2s; }
     .blur-input:focus { filter: none; }
+
+    /* ═══════════════════════════════════════════════════
+       WIZARD REDESIGN
+    ═══════════════════════════════════════════════════ */
+
+    /* Reset body padding for sticky bar */
+    body { padding-bottom: 76px; }
+
+    /* TOP BAR */
+    .top-bar {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      gap: 16px;
+      min-height: 68px;
+    }
+    .top-bar-left { display: flex; flex-direction: column; gap: 3px; }
+    .top-bar-vehicle { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+    .top-bar-status { font-size: 12px; color: #90cdf4; display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #68d391; display: inline-block; }
+    .top-bar-img { height: 44px; width: auto; border-radius: 6px; object-fit: cover; opacity: 0.9; }
+    @media (max-width: 500px) {
+      .top-bar { padding: 12px 16px; min-height: 56px; }
+      .top-bar-vehicle { font-size: 14px; }
+      .top-bar-img { height: 36px; }
+    }
+
+    /* STEPPER */
+    .wz-header { background: white; border-bottom: 1px solid #e2e8f0; padding: 0 20px 14px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .wz-progress-track { height: 3px; background: #e2e8f0; margin: 0 -20px 14px; }
+    .wz-progress-fill { height: 100%; background: linear-gradient(90deg,#1a1a2e,#3182ce); transition: width 0.4s ease; width: 20%; }
+    .wz-steps { display: flex; justify-content: space-between; gap: 4px; }
+    .wz-step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; cursor: pointer; }
+    .wz-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #e2e8f0; color: #a0aec0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; transition: all 0.25s;
+    }
+    .wz-label { font-size: 10px; color: #a0aec0; font-weight: 600; text-align: center; transition: color 0.25s; }
+    .wz-step.wz-active .wz-dot { background: #1a1a2e; color: white; }
+    .wz-step.wz-active .wz-label { color: #1a1a2e; }
+    .wz-step.wz-done .wz-dot { background: #38a169; color: white; }
+    .wz-step.wz-done .wz-label { color: #38a169; }
+    @media (max-width: 400px) { .wz-label { display: none; } .wz-dot { width: 24px; height: 24px; font-size: 11px; } }
+
+    /* STEP PANELS */
+    .step-panel { display: none; }
+    .step-panel.wz-active { display: block; }
+
+    /* CONTAINER */
+    .container { max-width: 680px; margin: 0 auto; padding: 0 0 24px; }
+
+    /* CARD */
+    .card {
+      background: white; border-radius: 12px;
+      padding: 20px 20px; margin: 16px 16px 0;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 15px; font-weight: 700; color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+    .card-sub { font-size: 13px; color: #718096; margin-bottom: 16px; }
+    @media (max-width: 500px) { .card { margin: 12px 12px 0; padding: 16px 14px; } }
+
+    /* FIELDS */
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    .fgrid .full { grid-column: 1 / -1; }
+    @media (max-width: 480px) { .fgrid { grid-template-columns: 1fr; } .fgrid .full { grid-column: 1; } }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 600; color: #4a5568; }
+    .field label .req { color: #e53e3e; margin-left: 2px; }
+    .field input, .field select, .field textarea {
+      padding: 11px 13px; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 15px; color: #1a1a2e;
+      background: #fafafa; transition: border-color 0.2s, background 0.2s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none; border-color: #1a1a2e; background: white;
+    }
+    .field textarea { resize: vertical; min-height: 80px; font-size: 14px; }
+    .field input.ocr-filled { border-color: #38a169 !important; background: #f0fff4 !important; }
+
+    /* UPLOAD CARD (new style) */
+    .upload-card {
+      display: flex; align-items: center; gap: 14px;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 14px 16px; cursor: pointer; background: #fafafa;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-card:hover { border-color: #1a1a2e; background: white; }
+    .upload-card input[type="file"] { display: none; }
+    .upload-icon { font-size: 28px; flex-shrink: 0; }
+    .upload-info { flex: 1; min-width: 0; }
+    .upload-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+    .upload-sub { font-size: 12px; color: #3182ce; margin-top: 2px; }
+    .upload-btn {
+      font-size: 12px; font-weight: 700; color: #1a1a2e;
+      border: 1.5px solid #1a1a2e; border-radius: 6px;
+      padding: 6px 12px; white-space: nowrap; flex-shrink: 0;
+    }
+    .upload-card:hover .upload-btn { background: #1a1a2e; color: white; }
+    .trust-note {
+      margin-top: 14px; font-size: 12px; color: #718096;
+      background: #f7f8fa; border-radius: 8px; padding: 10px 13px;
+    }
+    /* Keep old upload-area for accordion */
+    .upload-area {
+      border: 2px dashed #cbd5e0; border-radius: 8px; padding: 16px;
+      text-align: center; cursor: pointer; background: #fafafa;
+    }
+    .upload-area:hover { border-color: #1a1a2e; }
+    .upload-area .icon-upload { font-size: 24px; margin-bottom: 6px; }
+    .upload-area p { font-size: 13px; color: #718096; }
+    .upload-area input[type="file"] { display: none; }
+    .file-list { margin-top: 8px; font-size: 12px; color: #4a5568; }
+    .file-list div { padding: 3px 0; border-bottom: 1px solid #e2e8f0; }
+
+    /* CENNÍK (step 4) */
+    .cennik-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    .cennik-table thead th { font-size: 11px; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 0.3px; padding: 4px 8px 8px; border-bottom: 2px solid #e2e8f0; text-align: left; }
+    .cennik-table thead th:not(:first-child) { text-align: right; }
+    .cennik-table tbody td { padding: 7px 8px; border-bottom: 1px solid #f0f0f0; }
+    .cennik-table tbody td:not(:first-child) { text-align: right; font-weight: 600; }
+    .cennik-table tbody tr.active-row td { background: #ebf8ff; color: #2b6cb0; font-weight: 700; border-radius: 4px; }
+    .cennik-note { font-size: 11px; color: #a0aec0; margin-top: 10px; }
+
+    /* PRICE BOX */
+    .price-box-card { border: 1.5px solid #bee3f8 !important; background: #f0f7ff !important; }
+    .price-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .price-item { display: flex; flex-direction: column; gap: 2px; }
+    .price-item-total { grid-column: 1 / -1; background: white; border-radius: 8px; padding: 10px 12px; }
+    .price-label { font-size: 11px; color: #718096; }
+    .price-total { font-size: 18px; color: #1a1a2e; }
+    @media (max-width: 480px) { .price-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* REVIEW (step 5) */
+    .review-row { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; gap: 12px; }
+    .review-row:last-child { border-bottom: none; }
+    .review-key { color: #718096; flex-shrink: 0; }
+    .review-val { font-weight: 600; color: #1a1a2e; text-align: right; }
+    .review-section { font-size: 10px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.8px; margin: 14px 0 6px; }
+    .review-warn { background: #fff5f5; border-left: 3px solid #e53e3e; border-radius: 0 6px 6px 0; padding: 9px 12px; font-size: 12px; color: #c53030; margin-top: 12px; }
+
+    /* ACCORDION */
+    .accordion-wrap { margin: 10px 16px 0; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: white; }
+    .accordion-btn {
+      width: 100%; text-align: left; background: white; border: none;
+      padding: 14px 16px; font-size: 13px; font-weight: 600; color: #1a1a2e;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+    }
+    .accordion-btn:hover { background: #f7f8fa; }
+    .acc-badge { font-size: 10px; font-weight: 600; color: #a0aec0; background: #f0f0f0; border-radius: 10px; padding: 2px 7px; }
+    .acc-arrow { margin-left: auto; font-size: 18px; color: #a0aec0; transition: transform 0.2s; display: inline-block; }
+    .acc-arrow.open { transform: rotate(90deg); }
+    .accordion-body { display: none; padding: 4px 16px 16px; border-top: 1px solid #f0f0f0; }
+    .accordion-body.open { display: block; }
+    .acc-note { font-size: 12px; color: #718096; margin-bottom: 12px; }
+
+    /* GENERATE BUTTON */
+    .btn-generate {
+      display: block; width: calc(100% - 32px); margin: 16px 16px 0;
+      padding: 16px; background: linear-gradient(135deg, #1a1a2e 0%, #2d3748 100%);
+      color: white; border: none; border-radius: 10px; font-size: 16px;
+      font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+      transition: opacity 0.2s;
+    }
+    .btn-generate:hover { opacity: 0.9; }
+
+    /* STICKY CTA */
+    .sticky-cta {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: white; border-top: 1px solid #e2e8f0;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; min-height: 60px;
+    }
+    .sticky-back {
+      padding: 10px 14px; border: 1.5px solid #e2e8f0; background: white;
+      border-radius: 8px; font-size: 13px; font-weight: 600; color: #4a5568;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .sticky-back:hover { background: #f7f8fa; }
+    .sticky-info { flex: 1; min-width: 0; }
+    .sticky-info-line1 { font-size: 12px; font-weight: 700; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sticky-info-line2 { font-size: 11px; color: #718096; }
+    .sticky-next {
+      padding: 11px 20px; background: #1a1a2e; color: white;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .sticky-next:hover { opacity: 0.9; }
+    .sticky-next.generate { background: linear-gradient(135deg,#276749,#38a169); }
+
+    /* ZMLUVA ACTIONS */
+    .zmluva-actions { display: flex; gap: 12px; margin: 16px 16px 0; flex-wrap: wrap; }
+    .btn-print, .btn-back {
+      padding: 12px 24px; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s;
+    }
+    .btn-print { background: #1a1a2e; color: white; }
+    .btn-back { background: #e2e8f0; color: #1a1a2e; }
+    .btn-print:hover, .btn-back:hover { opacity: 0.85; }
+
+    /* EXPORT */
+    .export-section { margin: 12px 16px 0; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; }
+    .export-label { font-size: 12px; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 10px; }
+    .export-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-export { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid #1a1a2e; background: white; color: #1a1a2e; transition: all 0.2s; }
+    .btn-export:hover { background: #1a1a2e; color: white; }
+    .btn-export.primary { background: #1a1a2e; color: white; }
+    @media (max-width: 500px) {
+      .export-btns { flex-direction: column; }
+      .btn-export { width: 100%; text-align: center; }
+      .zmluva-actions { flex-direction: column; margin: 12px 12px 0; }
+      .btn-print, .btn-back { width: 100%; text-align: center; padding: 14px; }
+    }
+
+    /* CSV ADMIN */
+    #csv-admin { display: none; position: fixed; bottom: 70px; right: 20px; z-index: 9999; background: #1a1a2e; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-car-img">
-    <img src="auto.jpg" alt="Škoda Superb Combi 4x4 Style">
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="top-bar-vehicle">Škoda Superb Combi 4×4 Style</div>
+    <div class="top-bar-status"><span class="status-dot"></span> Pripravené na prenájom · Bratislava</div>
   </div>
-  <div class="header-text">
-    <h1>Prenájom vozidla</h1>
-    <p class="header-sub">Škoda Superb Combi 4x4 Style</p>
-    <p>Vyplňte formulár — zmluva sa vygeneruje automaticky</p>
-  </div>
+  <img src="auto.jpg" class="top-bar-img" alt="Škoda Superb">
 </div>
 
-<div class="container">
+<!-- FORMULAR -->
+<div id="formular-container">
 
-  <!-- FORMULÁR -->
-  <div id="formular-container">
+  <!-- STEPPER -->
+  <div class="wz-header">
+    <div class="wz-progress-track"><div class="wz-progress-fill" id="wz-progress-fill"></div></div>
+    <div class="wz-steps">
+      <div class="wz-step wz-active" data-step="1" onclick="wzGoTo(1)"><div class="wz-dot">1</div><div class="wz-label">Doklady</div></div>
+      <div class="wz-step" data-step="2" onclick="wzGoTo(2)"><div class="wz-dot">2</div><div class="wz-label">Nájomca</div></div>
+      <div class="wz-step" data-step="3" onclick="wzGoTo(3)"><div class="wz-dot">3</div><div class="wz-label">Termín</div></div>
+      <div class="wz-step" data-step="4" onclick="wzGoTo(4)"><div class="wz-dot">4</div><div class="wz-label">Cena</div></div>
+      <div class="wz-step" data-step="5" onclick="wzGoTo(5)"><div class="wz-dot">5</div><div class="wz-label">Kontrola</div></div>
+    </div>
+  </div>
 
-    <div class="notice">
-      📋 Všetky polia označené <strong>*</strong> sú povinné. Po vyplnení kliknite na <strong>Generovať zmluvu</strong>.
+  <div class="container">
+
+    <!-- ═══ KROK 1: Doklady ═══ -->
+    <div class="step-panel wz-active" id="step-1">
+      <div class="card">
+        <div class="card-title">Odfotte doklady</div>
+        <div class="card-sub">Systém automaticky rozpozná a vyplní formulár za vás.</div>
+
+        <div class="upload-card" onclick="document.getElementById('doc_op_pred').click()">
+          <div class="upload-icon">📄</div>
+          <div class="upload-info">
+            <div class="upload-title">Občiansky preukaz / pas</div>
+            <div class="upload-sub">Predná strana → meno, OP číslo, dátum narodenia</div>
+          </div>
+          <div class="upload-btn">Nahrať</div>
+          <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
+        </div>
+        <div class="file-list" id="list_op_pred"></div>
+        <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
+        <div class="ocr-status" id="ocr-status-op"></div>
+
+        <div class="upload-card" style="margin-top:12px;" onclick="document.getElementById('doc_vp_pred').click()">
+          <div class="upload-icon">🪪</div>
+          <div class="upload-info">
+            <div class="upload-title">Vodičský preukaz</div>
+            <div class="upload-sub">Predná strana → číslo VP a platnosť</div>
+          </div>
+          <div class="upload-btn">Nahrať</div>
+          <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
+        </div>
+        <div class="file-list" id="list_vp_pred"></div>
+        <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
+        <div class="ocr-status" id="ocr-status-vp"></div>
+
+        <div class="trust-note">🔒 Údaje sa použijú iba na vyplnenie zmluvy. Fotky nie sú ukladané na server.</div>
+      </div>
     </div>
 
-    <!-- NÁJOMCA -->
-    <div class="card">
-      <h2><span class="icon">👤</span> Údaje nájomcu</h2>
-
-      <!-- KROK 1: Doklady -->
-      <div class="ocr-block">
-        <div class="ocr-block-header">
-          <span class="ocr-step-num">1</span>
-          <div>
-            <div class="ocr-step-title">Nahrajte doklady — polia sa vyplnia samy</div>
-            <div class="ocr-step-sub">Odfotte OP a vodičák, zvyšok urobíme za vás. Polia môžete potom skorigovať.</div>
-          </div>
-        </div>
-        <div class="grid">
+    <!-- ═══ KROK 2: Nájomca ═══ -->
+    <div class="step-panel" id="step-2">
+      <div class="card">
+        <div class="card-title">Údaje nájomcu</div>
+        <div class="card-sub">Skontrolujte vyplnené polia a doplňte chýbajúce.</div>
+        <div class="fgrid">
           <div class="field">
-            <label>📄 Občiansky preukaz / pas <span style="color:#718096;font-weight:400">(predná strana)</span></label>
-            <div class="upload-area" onclick="document.getElementById('doc_op_pred').click()">
-              <div class="icon-upload">📄</div>
-              <p><strong>Kliknite</strong> alebo presuňte fotku</p>
-              <p style="color:#3182ce;font-weight:600;">→ vyplní: meno, OP číslo, dátum nar., adresu</p>
-              <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
-            </div>
-            <div class="file-list" id="list_op_pred"></div>
-            <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
-            <div class="ocr-status" id="ocr-status-op"></div>
+            <label>Meno <span class="req">*</span></label>
+            <input type="text" id="n_meno" placeholder="Ján" autocomplete="given-name">
           </div>
           <div class="field">
-            <label>🪪 Vodičský preukaz <span style="color:#718096;font-weight:400">(predná strana)</span></label>
-            <div class="upload-area" onclick="document.getElementById('doc_vp_pred').click()">
-              <div class="icon-upload">🪪</div>
-              <p><strong>Kliknite</strong> alebo presuňte fotku</p>
-              <p style="color:#3182ce;font-weight:600;">→ vyplní: číslo VP, platnosť</p>
-              <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
-            </div>
-            <div class="file-list" id="list_vp_pred"></div>
-            <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
-            <div class="ocr-status" id="ocr-status-vp"></div>
+            <label>Priezvisko <span class="req">*</span></label>
+            <input type="text" id="n_priezvisko" placeholder="Novák" autocomplete="family-name">
+          </div>
+          <div class="field">
+            <label>Dátum narodenia <span class="req">*</span></label>
+            <input type="date" id="n_datnar">
+          </div>
+          <div class="field">
+            <label>Číslo OP / pasu <span class="req">*</span></label>
+            <input type="text" id="n_op" placeholder="AB123456">
+          </div>
+          <div class="field full">
+            <label>Adresa trvalého bydliska <span class="req">*</span></label>
+            <input type="text" id="n_adresa" placeholder="Ulica 10, 811 01 Bratislava" autocomplete="street-address">
+          </div>
+          <div class="field">
+            <label>Telefón <span class="req">*</span></label>
+            <input type="tel" id="n_tel" placeholder="+421 900 000 000" autocomplete="tel">
+          </div>
+          <div class="field">
+            <label>E-mail <span class="req">*</span></label>
+            <input type="email" id="n_email" placeholder="jan.novak@email.sk" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Číslo vodičského preukazu <span class="req">*</span></label>
+            <input type="text" id="n_vp" placeholder="SK123456789">
+          </div>
+          <div class="field">
+            <label>VP platný do</label>
+            <input type="date" id="n_vp_platnost">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ KROK 3: Vozidlo a termín ═══ -->
+    <div class="step-panel" id="step-3">
+      <div class="card">
+        <div class="card-title">Vozidlo</div>
+        <div class="fgrid">
+          <div class="field">
+            <label>Značka a model <span class="req">*</span></label>
+            <input type="text" id="v_model" value="Škoda Superb Combi 4x4 Style">
+          </div>
+          <div class="field">
+            <label>EČV (ŠPZ) <span class="req">*</span></label>
+            <input type="text" id="v_ecv" value="AA343LO" class="blur-input">
+          </div>
+          <div class="field">
+            <label>VIN číslo</label>
+            <input type="text" id="v_vin" value="TMBLJ9NP2L7029581" class="blur-input">
+          </div>
+          <div class="field">
+            <label>Rok výroby</label>
+            <input type="text" id="v_rok" value="12/2019">
           </div>
         </div>
       </div>
 
-      <!-- DIVIDER -->
-      <div class="ocr-divider">
-        <span>2 &nbsp;—&nbsp; Skontrolujte a doplňte polia</span>
-      </div>
-
-      <!-- KROK 2: Polia -->
-      <div class="grid">
-        <div class="field">
-          <label>Meno <span class="req">*</span></label>
-          <input type="text" id="n_meno" placeholder="Ján">
-        </div>
-        <div class="field">
-          <label>Priezvisko <span class="req">*</span></label>
-          <input type="text" id="n_priezvisko" placeholder="Novák">
-        </div>
-        <div class="field">
-          <label>Dátum narodenia <span class="req">*</span></label>
-          <input type="date" id="n_datnar">
-        </div>
-        <div class="field">
-          <label>Číslo OP / pasu <span class="req">*</span></label>
-          <input type="text" id="n_op" placeholder="AB123456">
-        </div>
-        <div class="field full">
-          <label>Adresa trvalého bydliska <span class="req">*</span></label>
-          <input type="text" id="n_adresa" placeholder="Ulica 10, 811 01 Bratislava">
-        </div>
-        <div class="field">
-          <label>Telefón <span class="req">*</span></label>
-          <input type="tel" id="n_tel" placeholder="+421 900 000 000">
-        </div>
-        <div class="field">
-          <label>E-mail <span class="req">*</span></label>
-          <input type="email" id="n_email" placeholder="jan.novak@email.sk">
-        </div>
-        <div class="field">
-          <label>Číslo vodičského preukazu <span class="req">*</span></label>
-          <input type="text" id="n_vp" placeholder="SK123456789">
-        </div>
-        <div class="field">
-          <label>Vodičský preukaz platný do</label>
-          <input type="date" id="n_vp_platnost">
+      <div class="card">
+        <div class="card-title">Termín prenájmu</div>
+        <div class="fgrid">
+          <div class="field">
+            <label>Dátum prevzatia <span class="req">*</span></label>
+            <input type="date" id="t_od" onchange="updatePricing(); wzUpdateStickyInfo()">
+          </div>
+          <div class="field">
+            <label>Čas prevzatia <span class="req">*</span></label>
+            <input type="time" id="t_od_cas" value="10:00">
+          </div>
+          <div class="field">
+            <label>Dátum vrátenia <span class="req">*</span></label>
+            <input type="date" id="t_do" onchange="updatePricing(); wzUpdateStickyInfo()">
+          </div>
+          <div class="field">
+            <label>Čas vrátenia <span class="req">*</span></label>
+            <input type="time" id="t_do_cas" value="10:00">
+          </div>
+          <div class="field">
+            <label>Stav km pri prevzatí</label>
+            <input type="number" id="t_km_od" placeholder="napr. 45 000">
+          </div>
+          <div class="field">
+            <label>Limit km/deň <span style="color:#a0aec0;font-weight:400">(vypočíta sa)</span></label>
+            <input type="text" id="t_km_limit" readonly style="background:#f0f2f5;cursor:default;" placeholder="—">
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- VOZIDLO -->
-    <div class="card">
-      <h2><span class="icon">🚗</span> Vozidlo a podmienky</h2>
-      <div class="grid">
-        <div class="field">
-          <label>Značka a model <span class="req">*</span></label>
-          <input type="text" id="v_model" value="Škoda Superb Combi 4x4 Style">
-        </div>
-        <div class="field">
-          <label>EČV (ŠPZ) <span class="req">*</span></label>
-          <input type="text" id="v_ecv" value="AA343LO" class="blur-input">
-        </div>
-        <div class="field">
-          <label>VIN číslo</label>
-          <input type="text" id="v_vin" value="TMBLJ9NP2L7029581" class="blur-input">
-        </div>
-        <div class="field">
-          <label>Rok výroby</label>
-          <input type="text" id="v_rok" value="12/2019">
+      <div class="card">
+        <div class="card-title">Miesto odovzdania</div>
+        <div class="fgrid">
+          <div class="field full">
+            <label>Spôsob prevzatia <span class="req">*</span></label>
+            <select id="t_dovoz_od" onchange="updateMiesto('od')">
+              <option value="vlastne">Vlastné prevzatie (Bratislava – dohodnuté miesto)</option>
+              <option value="dovoz">Dovoz k zákazníkovi v rámci Bratislavy (+20 €)</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Miesto prevzatia <span class="req">*</span></label>
+            <input type="text" id="t_miesto_od" placeholder="Adresa alebo miesto prevzatia">
+          </div>
+          <div class="field full">
+            <label>Spôsob vrátenia <span class="req">*</span></label>
+            <select id="t_dovoz_do" onchange="updateMiesto('do')">
+              <option value="vlastne">Vlastné vrátenie (Bratislava – dohodnuté miesto)</option>
+              <option value="odvoz">Prevzatie od zákazníka v rámci Bratislavy (+20 €)</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Miesto vrátenia <span class="req">*</span></label>
+            <input type="text" id="t_miesto_do" placeholder="Adresa alebo miesto vrátenia">
+          </div>
+          <div class="field full">
+            <label>Krajiny / trasy</label>
+            <input type="text" id="t_krajiny" placeholder="napr. Slovensko, Česko, Rakúsko">
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- TERMÍN -->
-    <div class="card">
-      <h2><span class="icon">📅</span> Termín a miesto</h2>
-      <div class="grid three">
-        <div class="field">
-          <label>Dátum prevzatia <span class="req">*</span></label>
-          <input type="date" id="t_od" onchange="updatePricing()">
-        </div>
-        <div class="field">
-          <label>Čas prevzatia <span class="req">*</span></label>
-          <input type="time" id="t_od_cas" value="10:00">
-        </div>
-        <div class="field">
-          <label>Stav km pri prevzatí</label>
-          <input type="number" id="t_km_od" placeholder="napr. 45000">
-        </div>
-        <div class="field">
-          <label>Dátum vrátenia <span class="req">*</span></label>
-          <input type="date" id="t_do" onchange="updatePricing()">
-        </div>
-        <div class="field">
-          <label>Čas vrátenia <span class="req">*</span></label>
-          <input type="time" id="t_do_cas" value="10:00">
-        </div>
-        <div class="field">
-          <label>Limit km/deň <span style="color:#718096;font-weight:400">(auto)</span></label>
-          <input type="text" id="t_km_limit" readonly style="background:#f0f2f5;cursor:default;" placeholder="—">
-        </div>
-        <div class="field full">
-          <label>Spôsob prevzatia <span class="req">*</span></label>
-          <select id="t_dovoz_od" onchange="updateMiesto('od')">
-            <option value="vlastne">Vlastné prevzatie (Bratislava – dohodnuté miesto)</option>
-            <option value="dovoz">Dovoz k zákazníkovi v rámci Bratislavy (+20 €)</option>
-          </select>
-        </div>
-        <div class="field full">
-          <label>Miesto prevzatia <span class="req">*</span></label>
-          <input type="text" id="t_miesto_od" placeholder="Zadajte adresu alebo miesto prevzatia">
-        </div>
-        <div class="field full">
-          <label>Spôsob vrátenia <span class="req">*</span></label>
-          <select id="t_dovoz_do" onchange="updateMiesto('do')">
-            <option value="vlastne">Vlastné vrátenie (Bratislava – dohodnuté miesto)</option>
-            <option value="odvoz">Prevzatie od zákazníka v rámci Bratislavy (+20 €)</option>
-          </select>
-        </div>
-        <div class="field full">
-          <label>Miesto vrátenia <span class="req">*</span></label>
-          <input type="text" id="t_miesto_do" placeholder="Zadajte adresu alebo miesto vrátenia">
-        </div>
-        <div class="field full">
-          <label>Krajiny / trasy kde sa bude vozidlo pohybovať</label>
-          <input type="text" id="t_krajiny" placeholder="napr. Slovensko, Česko, Rakúsko">
-        </div>
-      </div>
-    </div>
-
-    <!-- FINANCIE -->
-    <div class="card">
-      <h2><span class="icon">💶</span> Cena a platba</h2>
-
-      <!-- CENNÍK (vždy viditeľný) -->
-      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:16px;">
-        <div style="font-size:12px; font-weight:700; color:#4a5568; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">💰 Cenník prenájmu</div>
-        <table id="cennik-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
-          <thead>
-            <tr>
-              <th style="text-align:left; color:#718096; font-weight:600; padding:3px 8px 6px 0; border-bottom:1px solid #e2e8f0;">Doba</th>
-              <th style="text-align:right; color:#718096; font-weight:600; padding:3px 8px 6px; border-bottom:1px solid #e2e8f0;">€ / deň</th>
-              <th style="text-align:right; color:#718096; font-weight:600; padding:3px 0 6px 8px; border-bottom:1px solid #e2e8f0;">km / deň</th>
-            </tr>
-          </thead>
+    <!-- ═══ KROK 4: Cena ═══ -->
+    <div class="step-panel" id="step-4">
+      <div class="card">
+        <div class="card-title">Cenník prenájmu</div>
+        <table class="cennik-table" id="cennik-table">
+          <thead><tr><th>Doba</th><th>€ / deň</th><th>km / deň</th></tr></thead>
           <tbody id="cennik-tbody"></tbody>
         </table>
-        <div style="font-size:11px; color:#a0aec0; margin-top:8px;">Kaucia 300 € · Nadlimit 0,15 € / km · Spoluúčasť 750 €</div>
+        <div class="cennik-note">Kaucia 300 € · Nadlimit 0,15 € / km · Spoluúčasť 750 €</div>
       </div>
 
-      <!-- CENOVÁ KALKULÁCIA -->
-      <div id="price-box" style="display:none; background:#f0f7ff; border:1.5px solid #bee3f8; border-radius:10px; padding:16px; margin-bottom:20px;">
-        <div style="font-size:13px; font-weight:700; color:#2b6cb0; margin-bottom:10px;">💡 Vaša kalkulácia</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; font-size:13px;">
-          <div><span style="color:#718096">Počet dní:</span><br><strong id="pb_dni">—</strong></div>
-          <div><span style="color:#718096">Cena/deň:</span><br><strong id="pb_cena_den">—</strong></div>
-          <div><span style="color:#718096">Limit km/deň:</span><br><strong id="pb_km">—</strong></div>
-          <div><span style="color:#718096">Celkom za prenájom:</span><br><strong id="pb_celkom" style="font-size:15px; color:#1a1a2e">—</strong></div>
-          <div><span style="color:#718096">Kaucia:</span><br><strong>300 €</strong></div>
-          <div><span style="color:#718096">Nadlimit:</span><br><strong>0,15 € / km</strong></div>
+      <div id="price-box" style="display:none;" class="card price-box-card">
+        <div class="card-title">💡 Vaša kalkulácia</div>
+        <div class="price-grid">
+          <div class="price-item"><span class="price-label">Počet dní</span><strong id="pb_dni">—</strong></div>
+          <div class="price-item"><span class="price-label">Cena / deň</span><strong id="pb_cena_den">—</strong></div>
+          <div class="price-item"><span class="price-label">Limit km / deň</span><strong id="pb_km">—</strong></div>
+          <div class="price-item price-item-total"><span class="price-label">Celkom za prenájom</span><strong id="pb_celkom" class="price-total">—</strong></div>
+          <div class="price-item"><span class="price-label">Kaucia</span><strong>300 €</strong></div>
+          <div class="price-item"><span class="price-label">Nadlimit</span><strong>0,15 € / km</strong></div>
         </div>
       </div>
 
-      <div class="grid">
-        <div class="field">
-          <label>Cena za deň (€) <span class="req">*</span></label>
-          <input type="number" id="f_cena_den" placeholder="—" min="0">
-        </div>
-        <div class="field">
-          <label>Depozit / kaucia (€)</label>
-          <input type="number" id="f_depozit" value="300" min="0">
-        </div>
-        <div class="field">
-          <label>Spôsob platby</label>
-          <select id="f_platba">
-            <option value="hotovosť">Hotovosť</option>
-            <option value="bankový prevod">Bankový prevod</option>
-            <option value="platobná karta">Platobná karta</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Spoluúčasť pri škode (€)</label>
-          <input type="number" id="f_spoluucast" value="750" min="0">
-        </div>
-      </div>
-    </div>
-
-    <!-- DOKLADY – zadné strany pre archív -->
-    <div class="card" style="border:1.5px dashed #cbd5e0;">
-      <h2><span class="icon">📎</span> Prílohy pre archív <span style="font-size:12px;font-weight:400;color:#718096;margin-left:8px;">(nepovinné)</span></h2>
-      <p style="font-size:13px;color:#718096;margin-bottom:16px;">Zadné strany dokladov — len na uloženie, bez automatického čítania.</p>
-      <div class="grid">
-        <div class="field">
-          <label>OP / pas — zadná strana</label>
-          <div class="upload-area" onclick="document.getElementById('doc_op_zad').click()">
-            <div class="icon-upload">📄</div>
-            <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
+      <div class="card">
+        <div class="card-title">Platobné podmienky</div>
+        <div class="fgrid">
+          <div class="field">
+            <label>Cena za deň (€) <span class="req">*</span></label>
+            <input type="number" id="f_cena_den" placeholder="—" min="0" onchange="wzUpdateStickyInfo()">
           </div>
-          <div class="file-list" id="list_op_zad"></div>
-        </div>
-        <div class="field">
-          <label>Vodičský preukaz — zadná strana</label>
-          <div class="upload-area" onclick="document.getElementById('doc_vp_zad').click()">
-            <div class="icon-upload">🪪</div>
-            <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-            <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
+          <div class="field">
+            <label>Depozit / kaucia (€)</label>
+            <input type="number" id="f_depozit" value="300" min="0">
           </div>
-          <div class="file-list" id="list_vp_zad"></div>
+          <div class="field">
+            <label>Spôsob platby</label>
+            <select id="f_platba">
+              <option value="hotovosť">Hotovosť</option>
+              <option value="bankový prevod">Bankový prevod</option>
+              <option value="platobná karta">Platobná karta</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Spoluúčasť pri škode (€)</label>
+            <input type="number" id="f_spoluucast" value="750" min="0">
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- POZNÁMKY -->
-    <div class="card">
-      <h2><span class="icon">📝</span> Poznámky / Špeciálne podmienky</h2>
-      <div class="field">
-        <textarea id="poznamky" placeholder="Napr. zákaz fajčenia, povolenie pre zvieratá, doplnkové vybavenie..."></textarea>
+    <!-- ═══ KROK 5: Kontrola ═══ -->
+    <div class="step-panel" id="step-5">
+      <div class="card" id="review-card">
+        <div class="card-title">Kontrola pred generovaním</div>
+        <div id="review-content" style="margin-top:12px;"></div>
       </div>
-    </div>
 
-    <!-- NÁHĽAD ZMLUVY -->
-    <div class="card" style="border: 1.5px dashed #cbd5e0;">
-      <h2 style="cursor:pointer;user-select:none;" onclick="toggleNahled(this)">
-        <span class="icon">👁</span> Náhľad vzoru zmluvy
-        <span id="nahled-arrow" style="margin-left:auto;font-size:18px;font-weight:400;">▼</span>
-      </h2>
-      <div id="nahled-body" style="display:none;">
-        <p style="font-size:12px;color:#718096;margin-bottom:16px;background:#fffbea;padding:10px;border-radius:6px;">
-          ℹ️ Toto je ukážka zmluvy. Osobné údaje prenajímateľa sú skryté (GDPR). Po vyplnení formulára sa vygeneruje zmluva s reálnymi údajmi.
-        </p>
-        <div class="zmluva-body">
-          <h1>Zmluva o prenájme motorového vozidla</h1>
-          <div class="subtitle">uzatvorená podľa § 663 a nasl. zákona č. 40/1964 Zb. Občiansky zákonník v znení neskorších predpisov</div>
-
-          <h3>Článok I. — Zmluvné strany</h3>
-          <div class="strany">
-            <div class="strana">
-              <strong>Prenajímateľ</strong>
-              <b>█████████</b><br>
-              ████████████████<br>
-              Číslo OP: ████████<br>
-              Tel.: ████████████<br>
-              E-mail: ██████████████<br>
-              IBAN: ██████████████████████
+      <div class="accordion-wrap">
+        <button class="accordion-btn" onclick="toggleAccordion('acc-prilohy', this)">
+          📎 Prílohy pre archív <span class="acc-badge">nepovinné</span><span class="acc-arrow">›</span>
+        </button>
+        <div class="accordion-body" id="acc-prilohy">
+          <p class="acc-note">Zadné strany dokladov — len na uloženie, bez automatického čítania.</p>
+          <div class="fgrid">
+            <div class="field">
+              <label>OP / pas — zadná strana</label>
+              <div class="upload-area" onclick="document.getElementById('doc_op_zad').click()">
+                <div class="icon-upload">📄</div>
+                <p><strong>Kliknite</strong> alebo presuňte súbor</p>
+                <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
+              </div>
+              <div class="file-list" id="list_op_zad"></div>
             </div>
-            <div class="strana">
-              <strong>Nájomca</strong>
-              <b>Meno a priezvisko</b><br>
-              Adresa trvalého bydliska<br>
-              Dátum narodenia: DD.MM.RRRR<br>
-              Číslo OP / pasu: XXXXXXXX<br>
-              Tel.: +421 9XX XXX XXX<br>
-              E-mail: nájomca@email.sk<br>
-              VP č.: XXXXXXXXX &nbsp;|&nbsp; platný do: DD.MM.RRRR
+            <div class="field">
+              <label>Vodičský preukaz — zadná strana</label>
+              <div class="upload-area" onclick="document.getElementById('doc_vp_zad').click()">
+                <div class="icon-upload">🪪</div>
+                <p><strong>Kliknite</strong> alebo presuňte súbor</p>
+                <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
+              </div>
+              <div class="file-list" id="list_vp_zad"></div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <h3>Článok II. — Predmet zmluvy</h3>
-          <table>
-            <tr><th>Parameter</th><th>Hodnota</th></tr>
-            <tr><td>Značka a model</td><td><b>Škoda Superb Combi 4x4 Style</b></td></tr>
-            <tr><td>EČV (ŠPZ)</td><td><b>██████</b></td></tr>
-            <tr><td>VIN</td><td>█████████████████</td></tr>
-            <tr><td>Rok výroby</td><td>12/2019</td></tr>
-            <tr><td>Stav tachometra pri prevzatí</td><td>__________ km</td></tr>
-            <tr><td>Povolené krajiny prevádzky</td><td>Slovenská republika</td></tr>
-          </table>
-
-          <h3>Článok III. — Doba a miesto prenájmu</h3>
-          <table>
-            <tr><th>Udalosť</th><th>Dátum</th><th>Čas</th><th>Miesto</th></tr>
-            <tr><td><b>Prevzatie vozidla</b></td><td>DD.MM.RRRR</td><td>HH:MM</td><td>dohodnuté miesto</td></tr>
-            <tr><td><b>Vrátenie vozidla</b></td><td>DD.MM.RRRR</td><td>HH:MM</td><td>dohodnuté miesto</td></tr>
-          </table>
-          <p><b>Ak nájomca nevráti vozidlo v dohodnutom termíne</b>, je povinný uhradiť zmluvnú pokutu vo výške dvojnásobku dennej sadzby za každý začatý deň omeškania. Prenajímateľ má právo vozidlo okamžite prevziať späť a oznámiť vec Polícii SR.</p>
-
-          <h3>Článok IV. — Cena, platba a kaucia</h3>
-          <table>
-            <tr><th>Položka</th><th>Suma</th></tr>
-            <tr><td>Cena za deň</td><td>podľa cenníka (35–80 € / deň)</td></tr>
-            <tr><td>Nájomné celkom</td><td>počet dní × cena/deň</td></tr>
-            <tr><td><b>Celková suma k úhrade</b></td><td><b>nájomné + prípadný dovoz</b></td></tr>
-            <tr><td>Kaucia (depozit)</td><td><b>300 €</b></td></tr>
-            <tr><td>Nadlimitné kilometre</td><td><b>0,15 € / km</b></td></tr>
-            <tr><td>Spoluúčasť nájomcu pri škodovej udalosti</td><td><b>750 €</b></td></tr>
-          </table>
-          <p>Celá suma nájomného a kaucia sú splatné <b>pred prevzatím vozidla</b>. Kaucia slúži ako zabezpečenie všetkých pohľadávok prenajímateľa. Prenajímateľ je oprávnený jednostranne si z kaucie uspokojiť akúkoľvek splatnú pohľadávku. Zostatok kaucie bude vrátený do <b>7 pracovných dní</b>.</p>
-
-          <h3>Článok V. — Povinnosti nájomcu (výber)</h3>
-          <p>• Vozidlo možno používať výlučne na osobnú dopravu v povolených krajinách.</p>
-          <p>• <b>Zákaz</b> ďalšieho prenájmu, požičiavania tretím osobám, komerčnej prepravy, off-road jazdy.</p>
-          <p>• Vozidlo vrátiť čisté, s rovnakou hladinou paliva. Znečistenie: min. <b>50 €</b>.</p>
-          <p>• <b>Zákaz fajčenia</b> — pokuta <b>200 €</b> + čistenie čalúnenia.</p>
-          <p>• Každú nehodu/poškodenie nahlásiť do <b>2 hodín</b>, privolať políciu. Bez záznamu = plná náhrada škody.</p>
-          <p>• Strata kľúča: <b>300 €</b>. Všetky pokuty a mýto hradí nájomca + <b>25 € poplatok</b> za vybavenie.</p>
-          <p>• <b>Alkohol/drogy</b>: strata akejkoľvek ochrany z poistenia, plná osobná zodpovednosť.</p>
-
-          <h3>Článok VI. — Zodpovednosť za škody</h3>
-          <p>• Nájomca <b>plne zodpovedá</b> za všetky škody počas doby prenájmu.</p>
-          <p>• Spoluúčasť nájomcu: <b>750 €</b> pri každej udalosti.</p>
-          <p>• Poistenie sa <b>nevzťahuje</b> na: alkohol, nesprávne palivo, iný vodič, terén, zakázané krajiny → nájomca hradí <b>celú škodu</b>.</p>
-          <p>• Počas opravy vozidla nájomca hradí <b>náhradu ušlého zisku</b> vo výške dennej sadzby za každý deň opravy.</p>
-          <p>• Ak kaucia nestačí, nájomca uhradí rozdiel do <b>14 dní</b>.</p>
-
-          <h3>Článok VII. — Záverečné ustanovenia</h3>
-          <p>Zmluva sa riadi zákonom č. 40/1964 Zb. Občiansky zákonník SR. Príslušný súd: Bratislava. Nájomca podpisom potvrdzuje, že si zmluvu prečítal, porozumel jej a podpisuje ju slobodne.</p>
-
-          <div class="podpisy" style="opacity:0.5;">
-            <div class="podpis-box"><br><br><br><strong>Prenajímateľ</strong><br>████████████</div>
-            <div class="podpis-box"><br><br><br><strong>Nájomca</strong><br>Meno a priezvisko</div>
+      <div class="accordion-wrap">
+        <button class="accordion-btn" onclick="toggleAccordion('acc-poznamky', this)">
+          📝 Poznámky / Špeciálne podmienky <span class="acc-badge">nepovinné</span><span class="acc-arrow">›</span>
+        </button>
+        <div class="accordion-body" id="acc-poznamky">
+          <div class="field" style="padding:0 0 4px;">
+            <textarea id="poznamky" placeholder="Napr. zákaz fajčenia, povolenie pre zvieratá, doplnkové vybavenie..."></textarea>
           </div>
         </div>
       </div>
+
+      <div class="accordion-wrap">
+        <button class="accordion-btn" onclick="toggleAccordion('acc-nahled', this)">
+          👁 Náhľad vzoru zmluvy <span class="acc-arrow">›</span>
+        </button>
+        <div class="accordion-body" id="acc-nahled">
+          <p style="font-size:12px;color:#718096;margin-bottom:12px;background:#fffbea;padding:10px;border-radius:6px;">ℹ️ Ukážka — osobné údaje prenajímateľa sú skryté (GDPR).</p>
+          <div class="zmluva-body" style="font-size:12px;">
+            <h1>Zmluva o prenájme motorového vozidla</h1>
+            <div class="subtitle">uzatvorená podľa § 663 a nasl. zákona č. 40/1964 Zb. Občiansky zákonník</div>
+            <h3>Článok I. — Zmluvné strany</h3>
+            <div class="strany">
+              <div class="strana"><strong>Prenajímateľ</strong><b>█████████</b><br>████████████████<br>Číslo OP: ████████<br>Tel.: ████████████<br>IBAN: ██████████████████████</div>
+              <div class="strana"><strong>Nájomca</strong><b>Meno a priezvisko</b><br>Adresa trvalého bydliska<br>Dátum narodenia: DD.MM.RRRR<br>Číslo OP: XXXXXXXX<br>VP č.: XXXXXXXXX | platný do: DD.MM.RRRR</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateContract()">📄 Generovať zmluvu</button>
     </div>
 
-    <button class="btn-generate" onclick="generateContract()">📄 Generovať zmluvu</button>
-
+  </div><!-- /container -->
   </div><!-- /formular-container -->
 
-  <!-- ZMLUVA -->
-  <div id="zmluva-container">
+<!-- ZMLUVA -->
+<div id="zmluva-container" style="display:none;">
+  <div class="container">
     <div class="zmluva-actions">
       <button class="btn-back" onclick="goBack()">← Späť na formulár</button>
       <button class="btn-print" onclick="window.print()">🖨️ Vytlačiť</button>
@@ -958,45 +1120,51 @@
       </div>
     </div>
   </div>
+</div>
 
-  <button id="csv-admin" onclick="downloadCSV()" title="Admin: Stiahnuť CSV všetkých zmlúv">📊 Stiahnuť CSV</button>
+<button id="csv-admin" onclick="downloadCSV()" title="Admin: Stiahnuť CSV všetkých zmlúv">📊 Stiahnuť CSV</button>
 
-  <!-- KALENDÁR OBSADENOSTI -->
-  <div id="calendar-section" class="card" style="margin-top:0;">
-    <h2><span class="icon">📅</span> Obsadenosť vozidla
-      <span style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+<!-- KALENDÁR OBSADENOSTI -->
+<div class="container">
+  <div id="calendar-section" class="card" style="margin-top:16px;">
+    <h2 style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      📅 Obsadenosť vozidla
+      <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
         <button class="cal-nav" onclick="calNav(-1)">&#8249;</button>
         <button class="cal-nav" onclick="calNav(1)">&#8250;</button>
-        <button class="cal-nav" id="cal-lock-btn" onclick="calToggleAdmin()" title="Admin" style="width:auto;padding:0 10px;font-size:14px;">🔒</button>
+        <button class="cal-nav" id="cal-lock-btn" onclick="calToggleAdmin()" title="Admin" style="width:auto;padding:0 10px;font-size:13px;">🔒</button>
       </span>
     </h2>
-    <div id="cal-wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;"></div>
-    <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;font-size:12px;color:#4a5568;">
+    <div id="cal-wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;"></div>
+    <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:12px;color:#4a5568;">
       <span><span class="cal-legend cal-free"></span> Voľné</span>
       <span><span class="cal-legend cal-busy"></span> Obsadené</span>
       <span><span class="cal-legend cal-today"></span> Dnes</span>
       <span><span class="cal-legend cal-past"></span> Minulosť</span>
     </div>
-
-    <!-- ADMIN PANEL – skrytý za heslom -->
-    <div id="cal-admin-panel" style="display:none;margin-top:16px;padding-top:16px;border-top:2px solid #1a1a2e;">
-
-      <!-- Pridať -->
+    <div id="cal-admin-panel" style="display:none;margin-top:16px;padding-top:16px;border-top:2px solid #e2e8f0;">
       <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">➕ Pridať blokáciu</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
         <div class="field"><label>Od</label><input type="date" id="res_od"></div>
         <div class="field"><label>Do</label><input type="date" id="res_do"></div>
-        <div class="field"><label>Popis</label><input type="text" id="res_meno" placeholder="napr. Servis, Dovolenka…"></div>
-        <button class="btn-export primary" style="height:40px;" onclick="addManualReservation()">Pridať</button>
+        <div class="field"><label>Popis</label><input type="text" id="res_meno" placeholder="napr. Servis…"></div>
+        <button class="btn-export primary" style="height:44px;" onclick="addManualReservation()">Pridať</button>
       </div>
-
-      <!-- Zoznam všetkých rezervácií -->
-      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin:18px 0 10px;">📋 Všetky rezervácie / blokácie</div>
+      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin:16px 0 8px;">📋 Všetky rezervácie / blokácie</div>
       <div id="cal-res-list"></div>
     </div>
   </div>
+</div>
 
-</div><!-- /container -->
+<!-- STICKY CTA BAR -->
+<div class="sticky-cta" id="sticky-cta">
+  <button class="sticky-back" id="sticky-back" onclick="wzPrev()" style="display:none;">← Späť</button>
+  <div class="sticky-info" id="sticky-info">
+    <div class="sticky-info-line1" id="sticky-line1">Škoda Superb Combi 4×4 Style</div>
+    <div class="sticky-info-line2" id="sticky-line2">Krok 1 z 5</div>
+  </div>
+  <button class="sticky-next" id="sticky-next" onclick="wzNext()">Pokračovať →</button>
+</div>
 
 <script>
   function toggleNahled(header) {
@@ -1264,6 +1432,7 @@
     document.getElementById('zmluva-output').innerHTML = html;
     document.getElementById('formular-container').style.display = 'none';
     document.getElementById('zmluva-container').style.display = 'block';
+    document.getElementById('sticky-cta').style.display = 'none';
     window.scrollTo({top: 0, behavior: 'smooth'});
 
     // Build filename: Priezvisko_Meno_YYYY-MM-DD
@@ -1292,6 +1461,7 @@
   function goBack() {
     document.getElementById('zmluva-container').style.display = 'none';
     document.getElementById('formular-container').style.display = 'block';
+    document.getElementById('sticky-cta').style.display = 'flex';
     window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
@@ -2036,8 +2206,7 @@
     });
   }
 
-  // Init calendar on load
-  document.addEventListener('DOMContentLoaded', () => { renderCalendar(); renderCennikTable(); });
+  // Init calendar on load (wizard handles this in its own DOMContentLoaded)
 
   // Show admin CSV button with secret key combo (Shift+Alt+C)
   document.addEventListener('keydown', function(e) {
@@ -2045,6 +2214,187 @@
       const btn = document.getElementById('csv-admin');
       btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
     }
+  });
+
+  // ── WIZARD ───────────────────────────────────────────────────────────────────
+
+  let _wzStep = 1;
+  const WZ_TOTAL = 5;
+
+  const WZ_REQUIRED = {
+    2: ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp'],
+    3: ['v_model','v_ecv','t_od','t_od_cas','t_do','t_do_cas','t_miesto_od','t_miesto_do'],
+    4: ['f_cena_den'],
+  };
+
+  function wzValidate(step) {
+    const ids = WZ_REQUIRED[step];
+    if (!ids) return true;
+    let ok = true;
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!el.value.trim()) {
+        el.style.borderColor = '#e53e3e';
+        el.style.background = '#fff5f5';
+        if (ok) { el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+        ok = false;
+      } else {
+        el.style.borderColor = '';
+        el.style.background = '';
+      }
+    });
+    if (!ok) {
+      const msgs = {2:'Vyplňte všetky povinné polia nájomcu.', 3:'Vyplňte termín a miesto.', 4:'Zadajte cenu za deň.'};
+      alert(msgs[step] || 'Vyplňte povinné polia.');
+    }
+    return ok;
+  }
+
+  function wzShow(step) {
+    // Hide all panels
+    for (let i = 1; i <= WZ_TOTAL; i++) {
+      const p = document.getElementById('step-' + i);
+      if (p) p.classList.remove('wz-active');
+    }
+    // Show target
+    const target = document.getElementById('step-' + step);
+    if (target) {
+      target.classList.add('wz-active');
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    // Update stepper dots
+    document.querySelectorAll('.wz-step').forEach(el => {
+      const s = parseInt(el.dataset.step);
+      el.classList.remove('wz-active','wz-done');
+      if (s === step) el.classList.add('wz-active');
+      else if (s < step) el.classList.add('wz-done');
+    });
+
+    // Progress bar
+    const fill = document.getElementById('wz-progress-fill');
+    if (fill) fill.style.width = (step / WZ_TOTAL * 100) + '%';
+
+    // Sticky bar
+    const backBtn = document.getElementById('sticky-back');
+    const nextBtn = document.getElementById('sticky-next');
+    if (backBtn) backBtn.style.display = step > 1 ? '' : 'none';
+    if (nextBtn) {
+      if (step === WZ_TOTAL) {
+        nextBtn.textContent = '📄 Generovať zmluvu';
+        nextBtn.classList.add('generate');
+      } else {
+        nextBtn.textContent = 'Pokračovať →';
+        nextBtn.classList.remove('generate');
+      }
+    }
+
+    const line2 = document.getElementById('sticky-line2');
+    if (line2) line2.textContent = 'Krok ' + step + ' z ' + WZ_TOTAL;
+
+    // Build review on step 5
+    if (step === 5) wzBuildReview();
+
+    wzUpdateStickyInfo();
+    _wzStep = step;
+  }
+
+  function wzNext() {
+    if (_wzStep === WZ_TOTAL) { generateContract(); return; }
+    if (!wzValidate(_wzStep)) return;
+    wzShow(_wzStep + 1);
+  }
+
+  function wzPrev() {
+    if (_wzStep > 1) wzShow(_wzStep - 1);
+  }
+
+  function wzGoTo(step) {
+    // Only allow going back or to already-passed steps
+    if (step <= _wzStep) wzShow(step);
+  }
+
+  function wzUpdateStickyInfo() {
+    const line1 = document.getElementById('sticky-line1');
+    if (!line1) return;
+    const od = val('t_od'), doD = val('t_do'), cena = val('f_cena_den');
+    const parts = [];
+    if (od && doD) {
+      const dni = daysBetween(od, doD);
+      parts.push(formatDate(od) + ' – ' + formatDate(doD));
+      if (dni > 0) parts.push(dni + (dni===1?' deň':dni<5?' dni':' dní'));
+    }
+    if (cena) parts.push(cena + ' €/deň');
+    if (parts.length) line1.textContent = parts.join(' · ');
+    else line1.textContent = 'Škoda Superb Combi 4×4 Style';
+  }
+
+  function wzBuildReview() {
+    const el = document.getElementById('review-content');
+    if (!el) return;
+
+    const meno = val('n_meno') + ' ' + val('n_priezvisko');
+    const od = val('t_od'), doD = val('t_do');
+    const dni = daysBetween(od, doD);
+    const cena = parseFloat(val('f_cena_den')) || 0;
+    const depozit = val('f_depozit') || '300';
+    const dovoz = getDovozPoplatok();
+    const celkom = (dni * cena + dovoz).toFixed(2);
+    const missingIds = ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp',
+                        'v_model','v_ecv','t_od','t_do','t_miesto_od','t_miesto_do','f_cena_den'];
+    const missing = missingIds.filter(id => !val(id));
+
+    let html = '';
+
+    if (missing.length) {
+      html += `<div class="review-warn">⚠️ Chýba ${missing.length} povinné ${missing.length===1?'pole':'polia'}. Vráťte sa a doplňte ich pred generovaním.</div>`;
+    }
+
+    html += `<div class="review-section">Nájomca</div>`;
+    html += row('Meno', meno || '—');
+    html += row('Dátum nar.', formatDate(val('n_datnar')) || '—');
+    html += row('OP / pas', val('n_op') || '—');
+    html += row('Kontakt', val('n_tel') + ' · ' + val('n_email'));
+
+    html += `<div class="review-section">Vozidlo</div>`;
+    html += row('Model', val('v_model') || '—');
+    html += row('EČV', val('v_ecv') || '—');
+
+    html += `<div class="review-section">Termín</div>`;
+    html += row('Prevzatie', (od ? formatDate(od) : '—') + ' ' + val('t_od_cas'));
+    html += row('Vrátenie', (doD ? formatDate(doD) : '—') + ' ' + val('t_do_cas'));
+    html += row('Počet dní', dni > 0 ? dni + (dni===1?' deň':dni<5?' dni':' dní') : '—');
+    html += row('Miesto prevzatia', val('t_miesto_od') || '—');
+    html += row('Miesto vrátenia', val('t_miesto_do') || '—');
+
+    html += `<div class="review-section">Cena</div>`;
+    html += row('Cena za deň', cena ? cena.toFixed(2) + ' €' : '—');
+    html += row('Celkom za prenájom', dni > 0 && cena ? celkom + ' €' : '—');
+    html += row('Kaucia', depozit + ' €');
+    html += row('Spôsob platby', val('f_platba') || '—');
+
+    el.innerHTML = html;
+
+    function row(k, v) {
+      return `<div class="review-row"><span class="review-key">${k}</span><span class="review-val">${v}</span></div>`;
+    }
+  }
+
+  function toggleAccordion(id, btn) {
+    const body = document.getElementById(id);
+    if (!body) return;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    const arrow = btn.querySelector('.acc-arrow');
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+  }
+
+  // Init wizard on load
+  document.addEventListener('DOMContentLoaded', () => {
+    renderCalendar();
+    renderCennikTable();
+    wzShow(1);
   });
 </script>
 
