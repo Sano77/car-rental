@@ -489,58 +489,6 @@
       #cal-admin-panel > div:nth-child(2) { grid-template-columns: 1fr 1fr !important; }
     }
 
-    /* OCR UPLOAD BLOCK */
-    .ocr-block {
-      background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
-      border: 1.5px solid #bee3f8;
-      border-radius: 10px;
-      padding: 18px 20px;
-      margin-bottom: 22px;
-    }
-    .ocr-block-header {
-      display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;
-    }
-    .ocr-step-num {
-      width: 28px; height: 28px; min-width: 28px;
-      background: #3182ce; color: white;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700;
-    }
-    .ocr-step-title { font-size: 14px; font-weight: 700; color: #1a365d; margin-bottom: 2px; }
-    .ocr-step-sub   { font-size: 12px; color: #2b6cb0; }
-    .ocr-divider {
-      display: flex; align-items: center; gap: 10px;
-      margin: 20px 0 18px; color: #718096; font-size: 12px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .ocr-divider::before, .ocr-divider::after {
-      content: ''; flex: 1; height: 1px; background: #e2e8f0;
-    }
-    .ocr-block .upload-area p:last-of-type { color: #3182ce; font-weight: 600; font-size: 12px; }
-
-    /* OCR */
-    .ocr-status {
-      margin-top: 8px; padding: 7px 12px; border-radius: 6px;
-      font-size: 12px; font-weight: 600; display: none;
-    }
-    .ocr-status.loading { display:block; background:#ebf8ff; color:#2b6cb0; }
-    .ocr-status.success { display:block; background:#f0fff4; color:#276749; }
-    .ocr-status.warn    { display:block; background:#fffbea; color:#744210; }
-    .ocr-status.error   { display:block; background:#fff5f5; color:#c53030; }
-    .field input.ocr-filled {
-      border-color: #38a169 !important;
-      background: #f0fff4 !important;
-      transition: border-color 0.4s, background 0.4s;
-    }
-    .ocr-progress {
-      height: 3px; background: #bee3f8; border-radius: 2px;
-      margin-top: 4px; overflow: hidden; display: none;
-    }
-    .ocr-progress-bar {
-      height: 100%; background: #3182ce;
-      transition: width 0.3s; width: 0%;
-    }
-
     /* CSV ADMIN */
     #csv-admin { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #1a1a2e; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
@@ -639,7 +587,6 @@
       outline: none; border-color: #1a1a2e; background: white;
     }
     .field textarea { resize: vertical; min-height: 80px; font-size: 14px; }
-    .field input.ocr-filled { border-color: #38a169 !important; background: #f0fff4 !important; }
 
     /* UPLOAD CARD (new style) */
     .upload-card {
@@ -813,36 +760,52 @@
     <!-- ═══ KROK 1: Doklady ═══ -->
     <div class="step-panel wz-active" id="step-1">
       <div class="card">
-        <div class="card-title">Odfotte doklady</div>
-        <div class="card-sub">Systém automaticky rozpozná a vyplní formulár za vás.</div>
+        <div class="card-title">Fotky dokladov</div>
+        <div class="card-sub">Nahrajte fotky dokladov — priložia sa k zmluve. Údaje vyplníte ručne v ďalšom kroku.</div>
 
         <div class="upload-card" onclick="document.getElementById('doc_op_pred').click()">
           <div class="upload-icon">📄</div>
           <div class="upload-info">
             <div class="upload-title">Občiansky preukaz / pas</div>
-            <div class="upload-sub">Predná strana → meno, OP číslo, dátum narodenia</div>
+            <div class="upload-sub">Predná strana — priloží sa k zmluve</div>
           </div>
           <div class="upload-btn">Nahrať</div>
-          <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred'); ocrDocument(this,'op')">
+          <input type="file" id="doc_op_pred" accept="image/*" onchange="showFiles(this,'list_op_pred')">
         </div>
         <div class="file-list" id="list_op_pred"></div>
-        <div class="ocr-progress" id="ocr-prog-op"><div class="ocr-progress-bar" id="ocr-bar-op"></div></div>
-        <div class="ocr-status" id="ocr-status-op"></div>
 
         <div class="upload-card" style="margin-top:12px;" onclick="document.getElementById('doc_vp_pred').click()">
           <div class="upload-icon">🪪</div>
           <div class="upload-info">
             <div class="upload-title">Vodičský preukaz</div>
-            <div class="upload-sub">Predná strana → číslo VP a platnosť</div>
+            <div class="upload-sub">Predná strana — priloží sa k zmluve</div>
           </div>
           <div class="upload-btn">Nahrať</div>
-          <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred'); ocrDocument(this,'vp')">
+          <input type="file" id="doc_vp_pred" accept="image/*" onchange="showFiles(this,'list_vp_pred')">
         </div>
         <div class="file-list" id="list_vp_pred"></div>
-        <div class="ocr-progress" id="ocr-prog-vp"><div class="ocr-progress-bar" id="ocr-bar-vp"></div></div>
-        <div class="ocr-status" id="ocr-status-vp"></div>
 
-        <div class="trust-note">🔒 Údaje sa použijú iba na vyplnenie zmluvy. Fotky nie sú ukladané na server.</div>
+        <div class="upload-card" style="margin-top:12px;" onclick="document.getElementById('doc_op_zad').click()">
+          <div class="upload-icon">📄</div>
+          <div class="upload-info">
+            <div class="upload-title">Občiansky preukaz / pas — zadná strana</div>
+            <div class="upload-sub">Nepovinné — priloží sa k zmluve</div>
+          </div>
+          <div class="upload-btn">Nahrať</div>
+          <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
+        </div>
+        <div class="file-list" id="list_op_zad"></div>
+
+        <div class="upload-card" style="margin-top:12px;" onclick="document.getElementById('doc_vp_zad').click()">
+          <div class="upload-icon">🪪</div>
+          <div class="upload-info">
+            <div class="upload-title">Vodičský preukaz — zadná strana</div>
+            <div class="upload-sub">Nepovinné — priloží sa k zmluve</div>
+          </div>
+          <div class="upload-btn">Nahrať</div>
+          <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
+        </div>
+        <div class="file-list" id="list_vp_zad"></div>
       </div>
     </div>
 
@@ -1034,35 +997,6 @@
       <div class="card" id="review-card">
         <div class="card-title">Kontrola pred generovaním</div>
         <div id="review-content" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="accordion-wrap">
-        <button class="accordion-btn" onclick="toggleAccordion('acc-prilohy', this)">
-          📎 Prílohy pre archív <span class="acc-badge">nepovinné</span><span class="acc-arrow">›</span>
-        </button>
-        <div class="accordion-body" id="acc-prilohy">
-          <p class="acc-note">Zadné strany dokladov — len na uloženie, bez automatického čítania.</p>
-          <div class="fgrid">
-            <div class="field">
-              <label>OP / pas — zadná strana</label>
-              <div class="upload-area" onclick="document.getElementById('doc_op_zad').click()">
-                <div class="icon-upload">📄</div>
-                <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-                <input type="file" id="doc_op_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_op_zad')">
-              </div>
-              <div class="file-list" id="list_op_zad"></div>
-            </div>
-            <div class="field">
-              <label>Vodičský preukaz — zadná strana</label>
-              <div class="upload-area" onclick="document.getElementById('doc_vp_zad').click()">
-                <div class="icon-upload">🪪</div>
-                <p><strong>Kliknite</strong> alebo presuňte súbor</p>
-                <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
-              </div>
-              <div class="file-list" id="list_vp_zad"></div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="accordion-wrap">
@@ -1752,435 +1686,6 @@
     }
   });
 
-  // ── OCR ──────────────────────────────────────────────────────────────────────
-
-  let _tesseractLoaded = false;
-
-  function loadTesseract() {
-    if (_tesseractLoaded) return Promise.resolve();
-    return new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-      s.onload = () => { _tesseractLoaded = true; res(); };
-      s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  // ── Image preprocessing ───────────────────────────────────────────────────────
-  // Converts image file → preprocessed canvas blob for better OCR accuracy.
-  // Steps: resize to min 1600px wide, grayscale, contrast+brightness boost.
-  function preprocessImage(file) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const MIN_WIDTH = 1600;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        if (w < MIN_WIDTH) { h = Math.round(h * MIN_WIDTH / w); w = MIN_WIDTH; }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-
-        // Draw original
-        ctx.drawImage(img, 0, 0, w, h);
-
-        // Grayscale + contrast filter
-        ctx.filter = 'grayscale(100%) contrast(160%) brightness(110%)';
-        ctx.drawImage(canvas, 0, 0);
-        ctx.filter = 'none';
-
-        // Sharpen via convolution
-        const src = ctx.getImageData(0, 0, w, h);
-        const dst = ctx.createImageData(w, h);
-        const kernel = [0,-1,0,-1,5,-1,0,-1,0];
-        const d = src.data;
-        for (let y = 1; y < h - 1; y++) {
-          for (let x = 1; x < w - 1; x++) {
-            for (let c = 0; c < 3; c++) {
-              let v = 0;
-              for (let ky = -1; ky <= 1; ky++)
-                for (let kx = -1; kx <= 1; kx++)
-                  v += d[((y+ky)*w+(x+kx))*4+c] * kernel[(ky+1)*3+(kx+1)];
-              dst.data[(y*w+x)*4+c] = Math.max(0, Math.min(255, v));
-            }
-            dst.data[(y*w+x)*4+3] = 255;
-          }
-        }
-        ctx.putImageData(dst, 0, 0);
-
-        canvas.toBlob(blob => resolve(blob || file), 'image/png');
-      };
-      img.onerror = () => resolve(file);
-      img.src = url;
-    });
-  }
-
-  function setOcrStatus(id, cls, msg) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.className = 'ocr-status ' + cls;
-    el.textContent = msg;
-  }
-
-  function setOcrProgress(barId, progId, pct) {
-    const bar = document.getElementById(barId);
-    const prog = document.getElementById(progId);
-    if (!bar || !prog) return;
-    prog.style.display = pct > 0 && pct < 100 ? 'block' : 'none';
-    bar.style.width = pct + '%';
-  }
-
-  function fillField(id, value) {
-    if (!value) return false;
-    const el = document.getElementById(id);
-    if (!el || el.value) return false; // don't overwrite existing
-    el.value = value;
-    el.classList.add('ocr-filled');
-    setTimeout(() => el.classList.remove('ocr-filled'), 3000);
-    return true;
-  }
-
-  function forceField(id, value) { // always overwrite
-    if (!value) return false;
-    const el = document.getElementById(id);
-    if (!el) return false;
-    el.value = value;
-    el.classList.add('ocr-filled');
-    setTimeout(() => el.classList.remove('ocr-filled'), 3000);
-    return true;
-  }
-
-  // ── MRZ Parser ───────────────────────────────────────────────────────────────
-  // Supports TD1 (ID card, 3×30) and TD3 (passport, 2×44)
-
-  function mrzDateToISO(s) { // YYMMDD → YYYY-MM-DD
-    if (!s || s.length < 6) return null;
-    const yy = parseInt(s.slice(0,2));
-    const mm = s.slice(2,4);
-    const dd = s.slice(4,6);
-    if (isNaN(yy) || mm < '01' || mm > '12' || dd < '01' || dd > '31') return null;
-    const year = yy <= 30 ? 2000 + yy : 1900 + yy;
-    return `${year}-${mm}-${dd}`;
-  }
-
-  function mrzNamesFromLine(nameLine) {
-    // Format: SURNAME<<GIVEN<NAMES or SURNAME<<GIVEN
-    const clean = nameLine.replace(/[^A-Z<]/g, '');
-    const parts = clean.split('<<');
-    const surname = (parts[0] || '').replace(/</g,' ').trim();
-    const given   = (parts[1] || '').replace(/</g,' ').trim().split(' ')[0];
-    return { surname, given };
-  }
-
-  function capitalize(s) {
-    if (!s) return s;
-    // Handle multi-word names: capitalize each word
-    return s.toLowerCase().replace(/(^|\s|-)(\S)/g, (_, pre, ch) => pre + ch.toUpperCase());
-  }
-
-  function cleanMrzLine(raw) {
-    return raw
-      .replace(/\s+/g, '')           // remove all spaces
-      .toUpperCase()
-      // Common OCR substitutions in MRZ zone
-      .replace(/[oQ]/g,  '0')
-      .replace(/[lI|!]/g,'1')
-      .replace(/[Ss§]/g, '5')
-      .replace(/[Bb]/g,  '8')
-      .replace(/[Zz]/g,  '2')
-      .replace(/[Gg]/g,  '6')
-      .replace(/[Tt]/g,  '7')
-      .replace(/[Uu]/g,  'U')        // keep U as U
-      .replace(/[^A-Z0-9<]/g, '<'); // any remaining garbage → filler
-  }
-
-  function parseMRZ(text) {
-    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    // Clean each line for MRZ detection
-    const lines = rawLines.map(cleanMrzLine)
-      .filter(l => l.length >= 27 && /^[A-Z0-9<]{27,}$/.test(l));
-
-    if (!lines.length) return null;
-
-    // TD1: 3 lines × 30 chars (Slovak OP / ID card)
-    // First line starts with I, ID, AC or similar country+type combo
-    const td1_1 = lines.find(l =>
-      l.length >= 28 &&
-      (/^I[A-Z0-9<]/.test(l) || /^A[C-Z]/.test(l))
-    );
-    const td1_idx = td1_1 ? lines.indexOf(td1_1) : -1;
-    if (td1_1 && lines[td1_idx+1] && lines[td1_idx+2]) {
-      const l1 = td1_1.padEnd(30,'<').slice(0,30);
-      const l2 = lines[td1_idx+1].padEnd(30,'<').slice(0,30);
-      const l3 = lines[td1_idx+2].padEnd(30,'<').slice(0,30);
-      const docNum  = l1.slice(5,14).replace(/</g,'');
-      const dob     = mrzDateToISO(l2.slice(0,6));
-      const expiry  = mrzDateToISO(l2.slice(8,14));
-      const names   = mrzNamesFromLine(l3);
-      if (docNum.length >= 4 && (dob || names.surname)) {
-        return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
-      }
-    }
-
-    // TD3: 2 lines × 44 chars (passport)
-    const td3_1 = lines.find(l => l.length >= 44 && /^P[A-Z<]/.test(l));
-    const td3_idx = td3_1 ? lines.indexOf(td3_1) : -1;
-    if (td3_1 && lines[td3_idx+1]) {
-      const l1 = td3_1.slice(0,44);
-      const l2 = lines[td3_idx+1].slice(0,44);
-      const names   = mrzNamesFromLine(l1.slice(5));
-      const docNum  = l2.slice(0,9).replace(/</g,'');
-      const dob     = mrzDateToISO(l2.slice(13,19));
-      const expiry  = mrzDateToISO(l2.slice(21,27));
-      return { type:'passport', docNum, dob, expiry, surname: names.surname, given: names.given };
-    }
-
-    // TD2: 2 lines × 36 chars (some EU ID cards)
-    const td2_1 = lines.find(l => l.length >= 36 && /^I[A-Z0-9<]/.test(l));
-    const td2_idx = td2_1 ? lines.indexOf(td2_1) : -1;
-    if (td2_1 && lines[td2_idx+1]) {
-      const l1 = td2_1.padEnd(36,'<').slice(0,36);
-      const l2 = lines[td2_idx+1].padEnd(36,'<').slice(0,36);
-      const names  = mrzNamesFromLine(l1.slice(5));
-      const docNum = l2.slice(0,9).replace(/</g,'');
-      const dob    = mrzDateToISO(l2.slice(13,19));
-      const expiry = mrzDateToISO(l2.slice(21,27));
-      if (docNum.length >= 4 && (dob || names.surname)) {
-        return { type:'id', docNum, dob, expiry, surname: names.surname, given: names.given };
-      }
-    }
-
-    return null;
-  }
-
-  // ── Visual text parser (fallback) ────────────────────────────────────────────
-
-  // Extract value: either on next line, or after colon/space on same line
-  function extractAfterLabel(line, nextLine) {
-    const colonSplit = line.match(/[:]\s*(.+)/);
-    if (colonSplit && colonSplit[1].trim().length > 1) return colonSplit[1].trim();
-    if (nextLine && nextLine.length > 1) return nextLine;
-    return '';
-  }
-
-  function parseVisualOP(text) {
-    const result = {};
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    // All dates in document: DD.MM.YYYY or DD. MM. YYYY or DD/MM/YYYY
-    const dates = [...text.matchAll(/\b(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})\b/g)]
-      .map(m => `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`)
-      .filter(d => {
-        const [y,mo,dy] = d.split('-').map(Number);
-        return y >= 1900 && y <= 2100 && mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31;
-      });
-
-    for (let i = 0; i < lines.length; i++) {
-      const u = lines[i].toUpperCase();
-      const next = lines[i+1] || '';
-      const nextu = next.toUpperCase();
-
-      // Priezvisko / Surname
-      if (/PRIEZVISKO|SURNAME/.test(u) && !result.priezvisko) {
-        const val = extractAfterLabel(lines[i], next);
-        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s\-]/g,'').trim();
-        if (clean && !/PRIEZVISKO|SURNAME|MENO|NAME|GIVEN/.test(clean.toUpperCase()))
-          result.priezvisko = capitalize(clean);
-      }
-
-      // Meno / Given name (avoid matching "Priezvisko a meno")
-      if (/^MENO|GIVEN NAME|^2\.?\s*MENO/.test(u) && !result.meno) {
-        const val = extractAfterLabel(lines[i], next);
-        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s\-]/g,'').trim().split(/\s+/)[0];
-        if (clean && !/PRIEZVISKO|MENO|SURNAME/.test(clean.toUpperCase()))
-          result.meno = capitalize(clean);
-      }
-
-      // Dátum narodenia / Date of birth
-      if (/D[AÁ]TUM\s*NAROD|DATE\s*OF\s*BIRTH|BIRTH\s*DATE/.test(u) && !result.dob) {
-        // Try same line first, then next
-        const lineText = lines[i] + ' ' + next;
-        const dm = lineText.match(/(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})/);
-        if (dm) result.dob = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
-        else if (dates.length) result.dob = dates[0];
-      }
-
-      // Adresa / Address (back of OP)
-      if (/^ADRESA|^ADDRESS|^TRVALÝ\s*POBYT|^MIESTO\s*POBYTU/.test(u) && !result.adresa) {
-        let addr = next.trim();
-        // Collect continuation lines (street + PSČ mesto)
-        if (addr && lines[i+2] && /\d{3}\s?\d{2}/.test(lines[i+2])) {
-          addr += ', ' + lines[i+2].trim();
-        } else if (addr && lines[i+2] && !/^[A-ZÁČĎÉÍĽŇÓŠŤÚÝŽ]{4,}/.test(lines[i+2].toUpperCase())) {
-          // Append if it looks like continuation (not a new label)
-        }
-        if (addr) result.adresa = addr;
-      }
-    }
-
-    // Slovak OP number: 2 letters + 6 digits (e.g. AB123456) or similar
-    if (!result.docNum) {
-      const opMatch = text.match(/\b([A-ZÁČĎÉÍĽŇÓŠŤÚÝŽ]{2}\d{6})\b/i)
-                   || text.match(/\b([A-Z]{1,2}[ ]?\d{6,8})\b/);
-      if (opMatch) result.docNum = opMatch[1].replace(/\s/g,'').toUpperCase();
-    }
-
-    // Fallback: use earliest date as DOB if nothing found
-    if (!result.dob && dates.length > 0) {
-      // Prefer dates that look like birth years (1950-2010)
-      const dob = dates.find(d => {
-        const y = parseInt(d.slice(0,4));
-        return y >= 1940 && y <= 2010;
-      });
-      result.dob = dob || dates[0];
-    }
-
-    return result;
-  }
-
-  function parseVisualVP(text) {
-    const result = {};
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    for (let i = 0; i < lines.length; i++) {
-      const u = lines[i].toUpperCase();
-      const next = lines[i+1] || '';
-
-      // Field 1. Priezvisko — may be "1." or "1" on same line as value
-      if (/^1[.\s]/.test(lines[i])) {
-        const val = extractAfterLabel(lines[i], next);
-        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s-]/g,'').trim();
-        if (clean && !result.priezvisko) result.priezvisko = capitalize(clean);
-      }
-      // Field 2. Meno
-      if (/^2[.\s]/.test(lines[i])) {
-        const val = extractAfterLabel(lines[i], next);
-        const clean = val.replace(/[^A-Za-zÀ-žA-Ža-ž\s-]/g,'').trim().split(/\s+/)[0];
-        if (clean && !result.meno) result.meno = capitalize(clean);
-      }
-      // Field 5. VP číslo (number on same or next line)
-      if (/^5[.\s]/.test(lines[i])) {
-        const combined = lines[i] + ' ' + next;
-        const vpNum = combined.match(/\b([A-Z]{0,3}[\s-]?\d{5,10})\b/i);
-        if (vpNum) result.vpNum = vpNum[1].replace(/[\s-]/g,'').toUpperCase();
-      }
-      // Field 4b / platnosť / expiry — accept various label formats
-      if (/^4[Bb][.\s]|PLATNOSŤ\s*DO|EXPIRY|VALID\s*UNTIL/.test(u)) {
-        const combined = lines[i] + ' ' + next;
-        const dm = combined.match(/(\d{1,2})[.\/\s]+(\d{1,2})[.\/\s]+(\d{4})/);
-        if (dm && !result.vpExpiry)
-          result.vpExpiry = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
-      }
-    }
-
-    // VP number fallback: AA123456 or SK123456789
-    if (!result.vpNum) {
-      const m = text.match(/\b([A-Z]{2}[\s-]?\d{6,9})\b/);
-      if (m) result.vpNum = m[1].replace(/[\s-]/g,'').toUpperCase();
-    }
-
-    return result;
-  }
-
-  // ── Main OCR entry point ─────────────────────────────────────────────────────
-
-  async function ocrDocument(inputEl, docType) {
-    const file = inputEl.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    const statusId = docType === 'op' ? 'ocr-status-op' :
-                     docType === 'op_zad' ? 'ocr-status-op-zad' : 'ocr-status-vp';
-    const barId    = docType === 'vp' ? 'ocr-bar-vp' : 'ocr-bar-op';
-    const progId   = docType === 'vp' ? 'ocr-prog-vp' : 'ocr-prog-op';
-
-    setOcrStatus(statusId, 'loading', '🔍 Čítam doklad...');
-    setOcrProgress(barId, progId, 5);
-
-    try {
-      await loadTesseract();
-
-      setOcrStatus(statusId, 'loading', '🔧 Pripravujem obrázok...');
-      const processedBlob = await preprocessImage(file);
-      setOcrStatus(statusId, 'loading', '🔍 Čítam doklad...');
-
-      const worker = await Tesseract.createWorker(['slk', 'eng'], 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(barId, progId, Math.round(m.progress * 85) + 10);
-          }
-        }
-      });
-
-      // PSM 6 = assume uniform block of text (best for ID cards)
-      await worker.setParameters({
-        tessedit_pageseg_mode: '6',
-        tessedit_char_whitelist: '',
-        preserve_interword_spaces: '1',
-      });
-
-      const { data: { text } } = await worker.recognize(processedBlob);
-      await worker.terminate();
-      setOcrProgress(barId, progId, 100);
-
-      let filled = 0;
-
-      if (docType === 'op') {
-        // 1. Try MRZ first
-        const mrz = parseMRZ(text);
-        if (mrz) {
-          filled += fillField('n_priezvisko', capitalize(mrz.surname)) ? 1 : 0;
-          filled += fillField('n_meno',       capitalize(mrz.given))   ? 1 : 0;
-          filled += fillField('n_datnar',      mrz.dob)                ? 1 : 0;
-          filled += fillField('n_op',          mrz.docNum)             ? 1 : 0;
-        }
-        // 2. Visual fallback for missing fields
-        const vis = parseVisualOP(text);
-        if (!document.getElementById('n_priezvisko').value)
-          filled += fillField('n_priezvisko', vis.priezvisko) ? 1 : 0;
-        if (!document.getElementById('n_meno').value)
-          filled += fillField('n_meno', vis.meno) ? 1 : 0;
-        if (!document.getElementById('n_datnar').value)
-          filled += fillField('n_datnar', vis.dob) ? 1 : 0;
-        if (!document.getElementById('n_op').value)
-          filled += fillField('n_op', vis.docNum) ? 1 : 0;
-        if (!document.getElementById('n_adresa').value && vis.adresa)
-          filled += fillField('n_adresa', vis.adresa) ? 1 : 0;
-
-      } else if (docType === 'op_zad') {
-        const vis = parseVisualOP(text);
-        filled += fillField('n_adresa', vis.adresa) ? 1 : 0;
-
-      } else if (docType === 'vp') {
-        const mrz = parseMRZ(text);
-        const vis = parseVisualVP(text);
-        const vpNum = (mrz && mrz.docNum) || vis.vpNum;
-        filled += fillField('n_vp', vpNum) ? 1 : 0;
-        filled += fillField('n_vp_platnost', vis.vpExpiry) ? 1 : 0;
-        // Fill name if still empty
-        if (!document.getElementById('n_priezvisko').value)
-          filled += fillField('n_priezvisko', vis.priezvisko || (mrz && capitalize(mrz.surname))) ? 1 : 0;
-        if (!document.getElementById('n_meno').value)
-          filled += fillField('n_meno', vis.meno || (mrz && capitalize(mrz.given))) ? 1 : 0;
-      }
-
-      setTimeout(() => setOcrProgress(barId, progId, 0), 600);
-
-      if (filled > 0) {
-        setOcrStatus(statusId, 'success', `✅ Vyplnených ${filled} polí automaticky — skontrolujte prosím`);
-      } else {
-        setOcrStatus(statusId, 'warn', '⚠️ Nepodarilo sa rozpoznať. Skúste ostrejšiu fotku alebo vyplňte ručne.');
-      }
-
-    } catch(e) {
-      console.error('OCR error:', e);
-      setOcrProgress(barId, progId, 0);
-      setOcrStatus(statusId, 'error', '❌ Chyba pri čítaní dokladu.');
-    }
-  }
 
   // ── CENNÍK TABLE ─────────────────────────────────────────────────────────────
   function renderCennikTable() {
