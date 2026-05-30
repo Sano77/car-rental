@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protokol o vrátení vozidla</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+    .page { max-width: 780px; margin: 32px auto; padding: 0 16px 60px; }
+
+    .doc-header {
+      background: linear-gradient(135deg, #276749 0%, #1a4731 100%);
+      color: white; border-radius: 12px;
+      padding: 24px 28px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .doc-header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .doc-header-left p { font-size: 12px; color: #9ae6b4; }
+    .doc-header-right { text-align: right; font-size: 12px; color: #9ae6b4; line-height: 1.7; }
+    .doc-header-right strong { color: white; }
+
+    .card { background: white; border-radius: 12px; padding: 22px 24px; margin-bottom: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #718096; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+
+    .row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .data-field { display: flex; flex-direction: column; gap: 3px; }
+    .data-label { font-size: 10px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .data-value.mono { font-family: monospace; font-size: 13px; letter-spacing: 0.5px; }
+    .data-value.blank { color: #a0aec0; font-weight: 400; }
+
+    .date-line { font-size: 13px; color: #4a5568; margin-bottom: 20px; background: #f0fff4; border-radius: 8px; padding: 10px 14px; border: 1px solid #9ae6b4; }
+
+    /* FUEL */
+    .fuel-row { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 700; color: #1a1a2e; margin-top: 8px; }
+    .fuel-seg { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #a0aec0; border-right: 1px solid #e2e8f0; }
+    .fuel-seg:last-child { border-right: none; }
+    .fuel-track { flex: 1; height: 22px; background: #f0f2f5; border-radius: 4px; border: 1.5px solid #e2e8f0; display: flex; overflow: hidden; }
+
+    /* CONDITION TABLE */
+    .cond-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cond-table th { background: #276749; color: white; padding: 8px 12px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; font-weight: 700; }
+    .cond-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+    .cond-table tr:last-child td { border-bottom: none; }
+
+    /* POPLATKY */
+    .fee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .fee-table td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+    .fee-table tr:last-child td { border-bottom: none; }
+    .fee-table .fee-total td { font-weight: 700; font-size: 15px; background: #f8fafc; }
+    .fee-table .fee-deduct td { color: #276749; font-weight: 700; }
+
+    /* FOTO */
+    .foto-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .foto-box { aspect-ratio: 4/3; border: 1.5px dashed #cbd5e0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #a0aec0; text-align: center; line-height: 1.4; padding: 4px; }
+
+    /* PODPISY */
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 8px; }
+    .sig-box { display: flex; flex-direction: column; gap: 6px; }
+    .sig-line { height: 52px; border-bottom: 2px solid #1a1a2e; }
+    .sig-name { font-size: 13px; font-weight: 700; }
+    .sig-role { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
+    .sig-date { font-size: 11px; color: #a0aec0; }
+
+    .print-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-green { background: #276749; color: white; }
+    .btn-light { background: #e2e8f0; color: #1a1a2e; }
+
+    @media print {
+      body { background: white; }
+      .page { margin: 0; padding: 0; }
+      .card { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; margin-bottom: 10px; }
+      .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cond-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-bar { display: none; }
+    }
+    @media (max-width: 600px) {
+      .row-grid, .row-grid.three { grid-template-columns: 1fr; }
+      .sig-grid { grid-template-columns: 1fr; gap: 24px; }
+      .foto-grid { grid-template-columns: repeat(2,1fr); }
+      .doc-header { flex-direction: column; gap: 12px; }
+      .doc-header-right { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="print-bar">
+    <button class="btn btn-green" onclick="window.print()">🖨️ Tlačiť / Uložiť PDF</button>
+    <button class="btn btn-light" onclick="window.location='admin.html'">← Admin</button>
+  </div>
+
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <h1>Protokol o vrátení vozidla</h1>
+      <p>Stav vozidla pri vrátení nájomcom</p>
+    </div>
+    <div class="doc-header-right">
+      <div>Alexander Kubik · Bratislava</div>
+      <div>Tel.: +421 911 507 770</div>
+      <div><strong>Protokol č.: VRAT-<span id="prot-num"></span></strong></div>
+      <div>Dátum: <strong id="today-date"></strong></div>
+    </div>
+  </div>
+
+  <div class="date-line">
+    📅 Dátum a čas vrátenia: <strong>&nbsp;<span id="full-datetime"></span></strong>
+    &nbsp;·&nbsp; Miesto: <strong id="return-place">Bratislava – dohodnuté miesto</strong>
+  </div>
+
+  <!-- NÁJOMCA -->
+  <div class="card">
+    <div class="card-title">Nájomca</div>
+    <div class="row-grid three">
+      <div class="data-field">
+        <span class="data-label">Meno a priezvisko</span>
+        <span class="data-value" id="f-meno">—</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Číslo OP</span>
+        <span class="data-value mono" id="f-op">—</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Telefón</span>
+        <span class="data-value" id="f-tel">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOZIDLO -->
+  <div class="card">
+    <div class="card-title">Vozidlo</div>
+    <div class="row-grid three">
+      <div class="data-field">
+        <span class="data-label">Značka a model</span>
+        <span class="data-value" id="f-vozidlo">Škoda Superb Combi 4×4 Style</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">EČV</span>
+        <span class="data-value mono" id="f-ecv">AA 343 LO</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Stav tachometra pri vrátení</span>
+        <span class="data-value blank">_____________ km</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Tachometer pri prevzatí</span>
+        <span class="data-value blank">_____________ km</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Najazdené km spolu</span>
+        <span class="data-value blank">_____________ km</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Dohodnutý limit km</span>
+        <span class="data-value blank">_____________ km</span>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="data-label" style="margin-bottom:6px;">Hladina paliva pri vrátení — zakrúžkujte</div>
+      <div class="fuel-row">
+        <span>E</span>
+        <div class="fuel-track">
+          <div class="fuel-seg">1/4</div>
+          <div class="fuel-seg">1/2</div>
+          <div class="fuel-seg">3/4</div>
+          <div class="fuel-seg">PLNÝ</div>
+        </div>
+        <span>F</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAV PRI VRÁTENÍ -->
+  <div class="card">
+    <div class="card-title">Stav vozidla pri vrátení</div>
+    <table class="cond-table">
+      <thead>
+        <tr>
+          <th>Časť vozidla</th>
+          <th>Popis / poškodenie</th>
+          <th style="width:120px;">Záver</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Predná kapota a nárazník</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Čelné sklo</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Pravý bok</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Ľavý bok</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Strecha</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Zadný nárazník a veko kufra</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Interiér (sedadlá, koberčeky)</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Pneumatiky a disky (4×)</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Svetlá (predné / zadné)</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Zrkadlá</td><td></td><td>⬜ OK &nbsp; ⬜ Poškodenie</td></tr>
+        <tr><td>Kľúče (2×)</td><td></td><td>⬜ OK &nbsp; ⬜ Chýba</td></tr>
+        <tr><td>Čistota exteriéru</td><td></td><td>⬜ OK &nbsp; ⬜ Špinavé</td></tr>
+        <tr><td>Čistota interiéru</td><td></td><td>⬜ OK &nbsp; ⬜ Špinavé</td></tr>
+        <tr><td>Zákaz fajčenia</td><td></td><td>⬜ OK &nbsp; ⬜ Porušený</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:12px;color:#718096;">
+      Detailný popis poškodení: ________________________________________________________
+      ________________________________________________________________________________
+      ________________________________________________________________________________
+    </div>
+  </div>
+
+  <!-- VYÚČTOVANIE -->
+  <div class="card">
+    <div class="card-title">Vyúčtovanie pri vrátení</div>
+    <table class="fee-table">
+      <tr><td>Nájomné (podľa zmluvy)</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Nadlimitné kilometre (_____ km × 0,15 €)</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Doplnenie paliva</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Čistenie vozidla</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Oprava poškodení / spoluúčasť</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Pokuta za fajčenie</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr><td>Iné poplatky</td><td style="text-align:right;font-weight:600;">_____________ €</td></tr>
+      <tr class="fee-total"><td><strong>Celkové odpočty z kaucie</strong></td><td style="text-align:right;"><strong>_____________ €</strong></td></tr>
+      <tr><td style="color:#718096;">Zaplatená kaucia</td><td style="text-align:right;color:#718096;">_____________ €</td></tr>
+      <tr class="fee-deduct"><td><strong>Suma na vrátenie nájomcovi</strong></td><td style="text-align:right;"><strong>_____________ €</strong></td></tr>
+    </table>
+    <div style="margin-top:10px;font-size:11px;color:#a0aec0;">
+      Zostatok kaucie bude vrátený do 7 pracovných dní na účet / v hotovosti.
+    </div>
+  </div>
+
+  <!-- FOTO -->
+  <div class="card">
+    <div class="card-title">Fotodokumentácia pri vrátení</div>
+    <div class="foto-grid">
+      <div class="foto-box">📷<br>Predok</div>
+      <div class="foto-box">📷<br>Ľavý bok</div>
+      <div class="foto-box">📷<br>Pravý bok</div>
+      <div class="foto-box">📷<br>Zadok</div>
+      <div class="foto-box">📷<br>Tachometer</div>
+      <div class="foto-box">📷<br>Palivo</div>
+      <div class="foto-box">📷<br>Interiér</div>
+      <div class="foto-box">📷<br>Poškodenie</div>
+    </div>
+  </div>
+
+  <!-- PODPISY -->
+  <div class="card">
+    <div class="card-title">Podpisy</div>
+    <div class="sig-grid">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-name">Alexander Kubik</div>
+        <div class="sig-role">Prenajímateľ</div>
+        <div class="sig-date">Dátum: _____________________</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-name" id="sig-najomca">Nájomca</div>
+        <div class="sig-role">Nájomca</div>
+        <div class="sig-date">Dátum: _____________________</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const pad = n => String(n).padStart(2,'0');
+  const now = new Date();
+  const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('today-date').textContent = dateStr;
+  document.getElementById('full-datetime').textContent = dateStr + ' ' + timeStr;
+  document.getElementById('prot-num').textContent = 'SK-' + now.getFullYear() + pad(now.getMonth()+1) + '-' + Math.floor(100+Math.random()*900);
+
+  // Pre-fill from URL params (linked from admin)
+  const p = new URLSearchParams(location.search);
+  if (p.get('meno'))    document.getElementById('f-meno').textContent = p.get('meno');
+  if (p.get('op'))      document.getElementById('f-op').textContent   = p.get('op');
+  if (p.get('tel'))     document.getElementById('f-tel').textContent  = p.get('tel');
+  if (p.get('vozidlo')) document.getElementById('f-vozidlo').textContent = p.get('vozidlo');
+  if (p.get('ecv'))     document.getElementById('f-ecv').textContent  = p.get('ecv');
+  if (p.get('meno'))    document.getElementById('sig-najomca').textContent = p.get('meno');
+  if (p.get('miesto'))  document.getElementById('return-place').textContent = p.get('miesto');
+</script>
+</body>
+</html>

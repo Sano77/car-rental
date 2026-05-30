@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Prenájom vozidla</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* TOP BAR */
+    .topbar {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-title { font-size: 16px; font-weight: 700; }
+    .topbar-sub { font-size: 12px; color: #90cdf4; }
+    .topbar-right { display: flex; gap: 10px; align-items: center; }
+
+    /* LOCK SCREEN */
+    #lock-screen {
+      position: fixed; inset: 0; background: #f0f2f5;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .lock-card {
+      background: white; border-radius: 16px; padding: 40px 36px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12); text-align: center; width: 320px;
+    }
+    .lock-icon { font-size: 48px; margin-bottom: 16px; }
+    .lock-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .lock-sub { font-size: 13px; color: #718096; margin-bottom: 24px; }
+    .lock-input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 16px; text-align: center; letter-spacing: 4px;
+      outline: none; margin-bottom: 14px;
+    }
+    .lock-input:focus { border-color: #1a1a2e; }
+    .lock-btn {
+      width: 100%; padding: 13px; background: #1a1a2e; color: white;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer;
+    }
+    .lock-error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
+
+    /* MAIN */
+    .main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      background: white; border-radius: 10px; padding: 16px 18px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .stat-label { font-size: 11px; color: #718096; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: #1a1a2e; }
+    .stat-value.green { color: #276749; }
+    .stat-value.orange { color: #c05621; }
+    .stat-value.blue { color: #2b6cb0; }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-btn {
+      padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid #e2e8f0; background: white; color: #4a5568;
+      transition: all 0.15s;
+    }
+    .filter-btn.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+    .filter-btn.green.active { background: #276749; border-color: #276749; }
+    .filter-btn.orange.active { background: #c05621; border-color: #c05621; }
+    .search-input {
+      padding: 7px 12px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+      font-size: 12px; outline: none; min-width: 180px; background: white;
+    }
+    .search-input:focus { border-color: #1a1a2e; }
+
+    /* RESERVATION CARDS */
+    .res-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .res-card {
+      background: white; border-radius: 12px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+      overflow: hidden; transition: box-shadow 0.2s;
+    }
+    .res-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+    .res-card-head {
+      display: grid; grid-template-columns: 28px 1fr auto auto auto;
+      gap: 12px; align-items: center; padding: 14px 18px;
+      cursor: pointer; user-select: none;
+    }
+    .res-index { font-size: 11px; font-weight: 700; color: #a0aec0; text-align: center; }
+    .res-main {}
+    .res-name { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+    .res-dates { font-size: 12px; color: #718096; margin-top: 2px; }
+    .res-contact { font-size: 12px; color: #4a5568; text-align: right; line-height: 1.6; }
+
+    /* STATUS BADGE */
+    .badge {
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 20px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .badge-pending  { background: #fffbea; color: #b7791f; border: 1px solid #f6e05e; }
+    .badge-approved { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+    .badge-rejected { background: #fff5f5; color: #c53030; border: 1px solid #fc8181; }
+    .badge-manual   { background: #f0f0f0; color: #4a5568; border: 1px solid #e2e8f0; }
+
+    .res-chevron { color: #a0aec0; font-size: 18px; transition: transform 0.2s; }
+    .res-chevron.open { transform: rotate(90deg); }
+
+    /* DETAIL PANEL */
+    .res-detail { display: none; border-top: 1px solid #f0f0f0; padding: 18px 18px 20px; }
+    .res-detail.open { display: block; }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
+
+    .d-field { display: flex; flex-direction: column; gap: 3px; }
+    .d-label { font-size: 10px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .d-value { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+
+    /* EDIT FORM */
+    .edit-form { background: #f8fafc; border-radius: 10px; padding: 16px; margin-top: 14px; border: 1.5px solid #e2e8f0; }
+    .edit-form-title { font-size: 12px; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .edit-grid { grid-template-columns: 1fr 1fr; } }
+    .edit-field { display: flex; flex-direction: column; gap: 4px; }
+    .edit-label { font-size: 11px; font-weight: 600; color: #4a5568; }
+    .edit-input {
+      padding: 9px 11px; border: 1.5px solid #e2e8f0; border-radius: 7px;
+      font-size: 13px; color: #1a1a2e; background: white; outline: none;
+    }
+    .edit-input:focus { border-color: #1a1a2e; }
+
+    /* ACTION BUTTONS */
+    .action-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+    .act-btn {
+      padding: 9px 16px; border-radius: 8px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; transition: opacity 0.15s;
+    }
+    .act-btn:hover { opacity: 0.85; }
+    .act-approve { background: #276749; color: white; }
+    .act-reject  { background: #e53e3e; color: white; }
+    .act-edit    { background: #1a1a2e; color: white; }
+    .act-save    { background: #2b6cb0; color: white; }
+    .act-cancel  { background: #e2e8f0; color: #1a1a2e; }
+    .act-delete  { background: #fff5f5; color: #e53e3e; border: 1.5px solid #fc8181; }
+    .act-proto   { background: #f0f7ff; color: #2b6cb0; border: 1.5px solid #bee3f8; }
+    .act-proto-v { background: #f0fff4; color: #276749; border: 1.5px solid #9ae6b4; }
+    .act-spacer  { flex: 1; }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 60px 20px; color: #a0aec0; }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* TOP BUTTONS */
+    .top-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: none; color: white; background: rgba(255,255,255,0.15);
+      transition: background 0.15s;
+    }
+    .top-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 14px; padding: 28px; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: #718096; margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* NEW RESERVATION */
+    .add-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+    .add-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .add-body { display: none; }
+    .add-body.open { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-icon">🔐</div>
+    <div class="lock-title">Admin prístup</div>
+    <div class="lock-sub">Zadajte heslo pre správu rezervácií</div>
+    <input type="password" class="lock-input" id="pw-input" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter') checkPw()">
+    <button class="lock-btn" onclick="checkPw()">Prihlásiť sa</button>
+    <div class="lock-error" id="pw-error">Nesprávne heslo</div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div>
+      <div class="topbar-title">🚗 Admin · Prenájom vozidla</div>
+      <div class="topbar-sub">Škoda Superb Combi 4×4 Style · AA 343 LO</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="top-btn" onclick="window.open('formular.html','_blank')">+ Nová zmluva</button>
+    <button class="top-btn" onclick="window.open('protokol.html','_blank')">📋 Odovzdanie</button>
+    <button class="top-btn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="top-btn" onclick="logout()">🔒 Odhlásiť</button>
+  </div>
+</div>
+
+<div class="main" id="main-content" style="display:none;">
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Celkom rezervácií</div>
+      <div class="stat-value" id="stat-total">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Čaká na schválenie</div>
+      <div class="stat-value orange" id="stat-pending">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Schválené</div>
+      <div class="stat-value green" id="stat-approved">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tržby (celkom)</div>
+      <div class="stat-value blue" id="stat-revenue">0 €</div>
+    </div>
+  </div>
+
+  <!-- QUICK ADD -->
+  <div class="add-section">
+    <div class="add-title" onclick="toggleAdd()">
+      <span>➕ Pridať manuálnu blokáciu / rezerváciu</span>
+      <span id="add-arrow" style="margin-left:auto;color:#a0aec0;">›</span>
+    </div>
+    <div class="add-body" id="add-body">
+      <div class="edit-grid" style="margin-bottom:12px;">
+        <div class="edit-field">
+          <span class="edit-label">Meno / popis</span>
+          <input class="edit-input" id="add-meno" placeholder="napr. Servis, Dovolenka...">
+        </div>
+        <div class="edit-field">
+          <span class="edit-label">Od</span>
+          <input class="edit-input" type="date" id="add-od">
+        </div>
+        <div class="edit-field">
+          <span class="edit-label">Do</span>
+          <input class="edit-input" type="date" id="add-do">
+        </div>
+        <div class="edit-field">
+          <span class="edit-label">Telefón</span>
+          <input class="edit-input" id="add-tel" placeholder="+421...">
+        </div>
+        <div class="edit-field">
+          <span class="edit-label">E-mail</span>
+          <input class="edit-input" id="add-email" placeholder="email@...">
+        </div>
+        <div class="edit-field">
+          <span class="edit-label">Poznámka</span>
+          <input class="edit-input" id="add-pozn" placeholder="nepovinné">
+        </div>
+      </div>
+      <button class="act-btn act-edit" onclick="addManual()">Pridať rezerváciu</button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">Všetky</button>
+    <button class="filter-btn orange" onclick="setFilter('pending', this)">⏳ Čakajúce</button>
+    <button class="filter-btn green" onclick="setFilter('approved', this)">✓ Schválené</button>
+    <button class="filter-btn" onclick="setFilter('rejected', this)">✗ Zamietnuté</button>
+    <button class="filter-btn" onclick="setFilter('manual', this)">🔧 Manuálne</button>
+    <input class="search-input" type="text" id="search-box" placeholder="🔍 Hľadať meno..." oninput="renderList()">
+  </div>
+
+  <!-- LIST -->
+  <div class="res-list" id="res-list"></div>
+
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="del-modal">
+  <div class="modal">
+    <h3>Odstrániť rezerváciu?</h3>
+    <p>Táto akcia je nevratná. Rezervácia bude trvalo vymazaná.</p>
+    <div class="modal-btns">
+      <button class="act-btn act-cancel" onclick="closeModal()">Zrušiť</button>
+      <button class="act-btn act-reject" onclick="confirmDelete()">Odstrániť</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_PW = 'superbcar';
+  let _unlocked = sessionStorage.getItem('admin_ok') === '1';
+  let _deleteIdx = null;
+  let _currentFilter = 'all';
+
+  // ── AUTH ──────────────────────────────────────────────────────────────────
+  function checkPw() {
+    const pw = document.getElementById('pw-input').value;
+    if (pw === ADMIN_PW) {
+      sessionStorage.setItem('admin_ok', '1');
+      _unlocked = true;
+      document.getElementById('lock-screen').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      renderList();
+    } else {
+      document.getElementById('pw-error').style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('admin_ok');
+    location.reload();
+  }
+
+  if (_unlocked) {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+  }
+
+  // ── DATA ──────────────────────────────────────────────────────────────────
+  function getData() {
+    try { return JSON.parse(localStorage.getItem('prenajom_zmluvy') || '[]'); }
+    catch { return []; }
+  }
+  function saveData(data) {
+    localStorage.setItem('prenajom_zmluvy', JSON.stringify(data));
+  }
+
+  function parseDMY(str) {
+    if (!str) return null;
+    const p = str.split('.');
+    if (p.length !== 3) return null;
+    return new Date(+p[2], +p[1]-1, +p[0]);
+  }
+  function isoToDisplay(iso) {
+    if (!iso) return '';
+    const [y,m,d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+  }
+  function displayToISO(dmy) {
+    if (!dmy) return '';
+    const p = dmy.split('.');
+    if (p.length !== 3) return dmy;
+    return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+  }
+
+  // ── STATS ─────────────────────────────────────────────────────────────────
+  function updateStats() {
+    const data = getData();
+    const total = data.length;
+    const pending = data.filter(r => (r.status||'pending') === 'pending' && !isManual(r)).length;
+    const approved = data.filter(r => r.status === 'approved').length;
+    const revenue = data.filter(r => r.status === 'approved')
+      .reduce((s, r) => s + (parseFloat(r.celkom) || 0), 0);
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-approved').textContent = approved;
+    document.getElementById('stat-revenue').textContent = revenue.toFixed(0) + ' €';
+  }
+
+  function isManual(r) { return (r.cislo_zmluvy||'').startsWith('MAN-'); }
+
+  // ── FILTER ────────────────────────────────────────────────────────────────
+  function setFilter(f, btn) {
+    _currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  }
+
+  // ── RENDER ────────────────────────────────────────────────────────────────
+  function renderList() {
+    if (!_unlocked) return;
+    updateStats();
+    const data = getData();
+    const search = (document.getElementById('search-box').value || '').toLowerCase();
+    const list = document.getElementById('res-list');
+
+    const sorted = [...data].map((r,i) => ({...r, _idx: i})).sort((a,b) => {
+      const da = parseDMY(a.od), db = parseDMY(b.od);
+      return (db||0) - (da||0);
+    });
+
+    const filtered = sorted.filter(r => {
+      const status = r.status || (isManual(r) ? 'manual' : 'pending');
+      if (_currentFilter !== 'all' && status !== _currentFilter) return false;
+      if (search) {
+        const hay = [r.meno, r.priezvisko, r.tel, r.email, r.od, r.do, r.label].join(' ').toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Žiadne rezervácie</p></div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map((r, displayIdx) => {
+      const status = r.status || (isManual(r) ? 'manual' : 'pending');
+      const name = [r.meno, r.priezvisko].filter(Boolean).join(' ') || r.label || '—';
+      const dni = r.dni ? r.dni + (r.dni==1?' deň':r.dni<5?' dni':' dní') : '';
+      const price = r.celkom ? r.celkom + ' €' : '';
+      const statusLabel = { pending:'Čaká', approved:'Schválená', rejected:'Zamietnutá', manual:'Manuálna' }[status] || status;
+      const badgeClass = { pending:'badge-pending', approved:'badge-approved', rejected:'badge-rejected', manual:'badge-manual' }[status] || 'badge-manual';
+
+      return `<div class="res-card" id="card-${r._idx}">
+        <div class="res-card-head" onclick="toggleDetail(${r._idx})">
+          <div class="res-index">${displayIdx+1}</div>
+          <div class="res-main">
+            <div class="res-name">${name}</div>
+            <div class="res-dates">
+              ${r.od||'?'} – ${r.do||'?'}
+              ${dni ? '· ' + dni : ''}
+              ${price ? '· <strong>' + price + '</strong>' : ''}
+            </div>
+          </div>
+          <div class="res-contact">
+            ${r.tel ? '<div>📞 ' + r.tel + '</div>' : ''}
+            ${r.email ? '<div>✉️ ' + r.email + '</div>' : ''}
+          </div>
+          <div><span class="badge ${badgeClass}">${statusLabel}</span></div>
+          <div class="res-chevron" id="chev-${r._idx}">›</div>
+        </div>
+        <div class="res-detail" id="detail-${r._idx}">
+          ${renderDetail(r)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderDetail(r) {
+    const status = r.status || (isManual(r) ? 'manual' : 'pending');
+    const name = [r.meno, r.priezvisko].filter(Boolean).join(' ') || r.label || '—';
+    const isMan = isManual(r);
+
+    const fields = [
+      ['Meno', [r.meno, r.priezvisko].filter(Boolean).join(' ') || r.label || '—'],
+      ['OP / pas', r.op || '—'],
+      ['Dátum nar.', r.datum_nar || '—'],
+      ['Adresa', r.adresa || '—'],
+      ['Telefón', r.tel || '—'],
+      ['E-mail', r.email || '—'],
+      ['VP číslo', r.vp || '—'],
+      ['Vozidlo', r.vozidlo || '—'],
+      ['EČV', r.ecv || '—'],
+      ['Od', r.od || '—'],
+      ['Do', r.do || '—'],
+      ['Počet dní', r.dni || '—'],
+      ['Cena/deň', r.cena_den ? r.cena_den + ' €' : '—'],
+      ['Celkom', r.celkom ? r.celkom + ' €' : '—'],
+      ['Kaucia', r.kaucia ? r.kaucia + ' €' : '—'],
+      ['Platba', r.platba || '—'],
+      ['Číslo zmluvy', r.cislo_zmluvy || '—'],
+      ['Dátum zmluvy', r.datum || '—'],
+    ].filter(([,v]) => v && v !== '—');
+
+    let html = `<div class="detail-grid">
+      ${fields.map(([k,v]) => `<div class="d-field"><span class="d-label">${k}</span><span class="d-value">${v}</span></div>`).join('')}
+    </div>`;
+
+    if (r.poznamky) html += `<div style="font-size:12px;color:#4a5568;background:#f8fafc;border-radius:8px;padding:10px 12px;margin-top:8px;"><strong>Poznámky:</strong> ${r.poznamky}</div>`;
+
+    // Edit form (hidden by default)
+    html += `<div class="edit-form" id="edit-${r._idx}" style="display:none;">
+      <div class="edit-form-title">✏️ Upraviť rezerváciu</div>
+      <div class="edit-grid">
+        <div class="edit-field"><span class="edit-label">Meno</span><input class="edit-input" id="e_meno_${r._idx}" value="${r.meno||''}"></div>
+        <div class="edit-field"><span class="edit-label">Priezvisko</span><input class="edit-input" id="e_priezvisko_${r._idx}" value="${r.priezvisko||''}"></div>
+        <div class="edit-field"><span class="edit-label">Telefón</span><input class="edit-input" id="e_tel_${r._idx}" value="${r.tel||''}"></div>
+        <div class="edit-field"><span class="edit-label">E-mail</span><input class="edit-input" id="e_email_${r._idx}" value="${r.email||''}"></div>
+        <div class="edit-field"><span class="edit-label">Od (DD.MM.RRRR)</span><input class="edit-input" id="e_od_${r._idx}" value="${r.od||''}"></div>
+        <div class="edit-field"><span class="edit-label">Do (DD.MM.RRRR)</span><input class="edit-input" id="e_do_${r._idx}" value="${r.do||''}"></div>
+        <div class="edit-field"><span class="edit-label">Cena/deň (€)</span><input class="edit-input" id="e_cena_${r._idx}" value="${r.cena_den||''}"></div>
+        <div class="edit-field"><span class="edit-label">Kaucia (€)</span><input class="edit-input" id="e_kaucia_${r._idx}" value="${r.kaucia||'300'}"></div>
+        <div class="edit-field"><span class="edit-label">Poznámka</span><input class="edit-input" id="e_pozn_${r._idx}" value="${r.poznamky||''}"></div>
+      </div>
+    </div>`;
+
+    // Action buttons
+    html += `<div class="action-row">`;
+    if (status === 'pending') {
+      html += `<button class="act-btn act-approve" onclick="setStatus(${r._idx},'approved')">✓ Schváliť</button>`;
+      html += `<button class="act-btn act-reject" onclick="setStatus(${r._idx},'rejected')">✗ Zamietnuť</button>`;
+    }
+    if (status === 'approved') {
+      html += `<button class="act-btn act-reject" onclick="setStatus(${r._idx},'rejected')">✗ Zrušiť schválenie</button>`;
+    }
+    if (status === 'rejected') {
+      html += `<button class="act-btn act-approve" onclick="setStatus(${r._idx},'approved')">✓ Schváliť</button>`;
+    }
+    html += `<button class="act-btn act-edit" id="editbtn-${r._idx}" onclick="toggleEdit(${r._idx})">✏️ Upraviť</button>`;
+    html += `<button class="act-btn act-save" id="savebtn-${r._idx}" style="display:none;" onclick="saveEdit(${r._idx})">💾 Uložiť</button>`;
+    html += `<button class="act-btn act-cancel" id="cancelbtn-${r._idx}" style="display:none;" onclick="cancelEdit(${r._idx})">Zrušiť</button>`;
+    html += `<span class="act-spacer"></span>`;
+
+    const encName = encodeURIComponent(name);
+    const encOp   = encodeURIComponent(r.op||'');
+    const encTel  = encodeURIComponent(r.tel||'');
+    html += `<button class="act-btn act-proto" onclick="window.open('protokol.html?meno=${encName}&op=${encOp}&tel=${encTel}','_blank')">📋 Odovzdanie</button>`;
+    html += `<button class="act-btn act-proto-v" onclick="window.open('protokol-vratenie.html?meno=${encName}&op=${encOp}&tel=${encTel}','_blank')">🔄 Vrátenie</button>`;
+    html += `<button class="act-btn act-delete" onclick="askDelete(${r._idx})">🗑 Odstrániť</button>`;
+    html += `</div>`;
+
+    return html;
+  }
+
+  // ── TOGGLE DETAIL ─────────────────────────────────────────────────────────
+  function toggleDetail(idx) {
+    const det = document.getElementById('detail-' + idx);
+    const chev = document.getElementById('chev-' + idx);
+    if (!det) return;
+    det.classList.toggle('open');
+    if (chev) chev.classList.toggle('open');
+  }
+
+  // ── TOGGLE EDIT ───────────────────────────────────────────────────────────
+  function toggleEdit(idx) {
+    document.getElementById('edit-' + idx).style.display = 'block';
+    document.getElementById('editbtn-' + idx).style.display = 'none';
+    document.getElementById('savebtn-' + idx).style.display = '';
+    document.getElementById('cancelbtn-' + idx).style.display = '';
+  }
+  function cancelEdit(idx) {
+    document.getElementById('edit-' + idx).style.display = 'none';
+    document.getElementById('editbtn-' + idx).style.display = '';
+    document.getElementById('savebtn-' + idx).style.display = 'none';
+    document.getElementById('cancelbtn-' + idx).style.display = 'none';
+  }
+
+  // ── SAVE EDIT ─────────────────────────────────────────────────────────────
+  function saveEdit(idx) {
+    const data = getData();
+    if (!data[idx]) return;
+    const g = id => (document.getElementById(id) || {}).value || '';
+    data[idx].meno       = g('e_meno_' + idx);
+    data[idx].priezvisko = g('e_priezvisko_' + idx);
+    data[idx].tel        = g('e_tel_' + idx);
+    data[idx].email      = g('e_email_' + idx);
+    data[idx].od         = g('e_od_' + idx);
+    data[idx].do         = g('e_do_' + idx);
+    data[idx].cena_den   = g('e_cena_' + idx);
+    data[idx].kaucia     = g('e_kaucia_' + idx);
+    data[idx].poznamky   = g('e_pozn_' + idx);
+    // Recalculate celkom
+    const od = parseDMY(data[idx].od), doD = parseDMY(data[idx].do);
+    if (od && doD && data[idx].cena_den) {
+      const dni = Math.max(0, Math.round((doD - od) / 86400000));
+      data[idx].dni = dni;
+      data[idx].celkom = (dni * parseFloat(data[idx].cena_den)).toFixed(2);
+    }
+    saveData(data);
+    renderList();
+  }
+
+  // ── STATUS ────────────────────────────────────────────────────────────────
+  function setStatus(idx, status) {
+    const data = getData();
+    if (!data[idx]) return;
+    data[idx].status = status;
+    saveData(data);
+    renderList();
+  }
+
+  // ── DELETE ────────────────────────────────────────────────────────────────
+  function askDelete(idx) {
+    _deleteIdx = idx;
+    document.getElementById('del-modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('del-modal').classList.remove('open');
+    _deleteIdx = null;
+  }
+  function confirmDelete() {
+    if (_deleteIdx === null) return;
+    const data = getData();
+    data.splice(_deleteIdx, 1);
+    saveData(data);
+    closeModal();
+    renderList();
+  }
+
+  // ── ADD MANUAL ────────────────────────────────────────────────────────────
+  function addManual() {
+    const meno  = document.getElementById('add-meno').value.trim();
+    const od    = document.getElementById('add-od').value;
+    const doVal = document.getElementById('add-do').value;
+    const tel   = document.getElementById('add-tel').value.trim();
+    const email = document.getElementById('add-email').value.trim();
+    const pozn  = document.getElementById('add-pozn').value.trim();
+    if (!meno || !od || !doVal) { alert('Zadajte meno, dátum Od a Do.'); return; }
+    const data = getData();
+    data.push({
+      cislo_zmluvy: 'MAN-' + Date.now(),
+      datum: new Date().toLocaleDateString('sk-SK'),
+      meno, priezvisko: '', tel, email, poznamky: pozn,
+      od: isoToDisplay(od), do: isoToDisplay(doVal),
+      label: meno, status: 'approved'
+    });
+    saveData(data);
+    ['add-meno','add-od','add-do','add-tel','add-email','add-pozn'].forEach(id => document.getElementById(id).value = '');
+    renderList();
+  }
+
+  function toggleAdd() {
+    const body = document.getElementById('add-body');
+    const arrow = document.getElementById('add-arrow');
+    body.classList.toggle('open');
+    arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
+  }
+
+  // ── FILTER BUTTONS ────────────────────────────────────────────────────────
+  function setFilter(f, btn) {
+    _currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  }
+
+  // ── CSV EXPORT ────────────────────────────────────────────────────────────
+  function exportCSV() {
+    const data = getData();
+    if (!data.length) { alert('Žiadne záznamy.'); return; }
+    const headers = ['cislo_zmluvy','datum','meno','priezvisko','op','datum_nar','adresa','tel','email','vp','vozidlo','ecv','od','do','dni','cena_den','celkom','kaucia','platba','status','poznamky'];
+    const rows = data.map(r => headers.map(h => '"' + (r[h]||'').toString().replace(/"/g,'""') + '"').join(','));
+    const csv = '﻿' + [headers.join(','), ...rows].join('\r\n');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})), download: 'prenajom_' + new Date().toISOString().slice(0,10) + '.csv' });
+    a.click();
+  }
+
+  // ── ENTER KEY on lock ─────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Auto-render if already unlocked
+  if (_unlocked) renderList();
+</script>
+</body>
+</html>
