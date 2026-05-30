@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Odovzdávací protokol – Skoromaslej</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    .page {
+      max-width: 780px; margin: 32px auto; padding: 0 16px 60px;
+    }
+
+    /* HEADER */
+    .doc-header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white; border-radius: 12px;
+      padding: 24px 28px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .doc-header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .doc-header-left p { font-size: 12px; color: #90cdf4; }
+    .doc-header-right { text-align: right; font-size: 12px; color: #a0aec0; line-height: 1.7; }
+    .doc-header-right strong { color: white; }
+
+    /* CARD */
+    .card {
+      background: white; border-radius: 12px;
+      padding: 22px 24px; margin-bottom: 16px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #718096; margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* TWO-COL GRID */
+    .row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+    /* DATA FIELD */
+    .data-field { display: flex; flex-direction: column; gap: 3px; }
+    .data-label { font-size: 10px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .data-value.mono { font-family: monospace; font-size: 13px; letter-spacing: 0.5px; }
+    .data-value.warn { color: #c05621; }
+
+    /* CHECKLIST */
+    .check-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .check-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 13px;
+    }
+    .check-box {
+      width: 20px; height: 20px; border: 2px solid #1a1a2e;
+      border-radius: 4px; flex-shrink: 0; display: flex;
+      align-items: center; justify-content: center; font-size: 14px;
+    }
+    .check-box.ok { background: #1a1a2e; color: white; }
+
+    /* CONDITION TABLE */
+    .cond-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cond-table th {
+      background: #1a1a2e; color: white; padding: 8px 12px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      text-align: left; font-weight: 700;
+    }
+    .cond-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+    .cond-table tr:last-child td { border-bottom: none; }
+    .cond-table td:last-child { width: 80px; text-align: center; }
+    .status-ok { color: #38a169; font-weight: 700; }
+    .status-note { color: #c05621; font-weight: 700; }
+
+    /* FUEL BAR */
+    .fuel-track {
+      height: 22px; background: #f0f2f5; border-radius: 4px;
+      overflow: hidden; margin-top: 8px; border: 1.5px solid #e2e8f0;
+    }
+    .fuel-fill {
+      height: 100%; background: linear-gradient(90deg, #38a169, #68d391);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: white;
+    }
+
+    /* SIGNATURE */
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 8px; }
+    .sig-box { display: flex; flex-direction: column; gap: 6px; }
+    .sig-line { height: 52px; border-bottom: 2px solid #1a1a2e; }
+    .sig-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .sig-role { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
+    .sig-date { font-size: 11px; color: #a0aec0; }
+
+    /* DATE LINE */
+    .date-line {
+      font-size: 13px; color: #4a5568; margin-bottom: 20px;
+      background: #f8fafc; border-radius: 8px; padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* FOTO SEKCIA */
+    .foto-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;
+    }
+    .foto-box {
+      aspect-ratio: 4/3; border: 1.5px dashed #cbd5e0;
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; color: #a0aec0;
+      text-align: center; line-height: 1.4; padding: 4px;
+    }
+
+    /* PRINT */
+    @media print {
+      body { background: white; }
+      .page { margin: 0; padding: 0; }
+      .card { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; margin-bottom: 10px; }
+      .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cond-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .check-box.ok { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    @media (max-width: 600px) {
+      .row-grid { grid-template-columns: 1fr; }
+      .row-grid.three { grid-template-columns: 1fr 1fr; }
+      .check-grid { grid-template-columns: 1fr; }
+      .sig-grid { grid-template-columns: 1fr; gap: 24px; }
+      .foto-grid { grid-template-columns: repeat(2,1fr); }
+      .doc-header { flex-direction: column; gap: 12px; }
+      .doc-header-right { text-align: left; }
+    }
+
+    /* PRINT BUTTON */
+    .print-bar {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-dark { background: #1a1a2e; color: white; }
+    .btn-light { background: #e2e8f0; color: #1a1a2e; }
+    @media print { .print-bar { display: none; } }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="print-bar">
+    <button class="btn btn-dark" onclick="window.print()">🖨️ Tlačiť / Uložiť PDF</button>
+    <button class="btn btn-light" onclick="window.history.back()">← Späť</button>
+  </div>
+
+  <!-- HLAVIČKA -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <h1>Odovzdávací protokol vozidla</h1>
+      <p>Stav vozidla pri prevzatí nájomcom</p>
+    </div>
+    <div class="doc-header-right">
+      <div>Alexander Kubik · Bratislava</div>
+      <div>Tel.: +421 911 507 770</div>
+      <div><strong>Protokol č.: PROT-<span id="prot-num"></span></strong></div>
+      <div>Dátum: <strong id="today-date"></strong></div>
+    </div>
+  </div>
+
+  <div class="date-line">
+    📅 Dátum a čas odovzdania:
+    <strong>&nbsp;<span id="full-datetime"></span></strong>
+    &nbsp;·&nbsp; Miesto: <strong>Bratislava – dohodnuté miesto</strong>
+  </div>
+
+  <!-- NÁJOMCA -->
+  <div class="card">
+    <div class="card-title">Nájomca</div>
+    <div class="row-grid three">
+      <div class="data-field">
+        <span class="data-label">Meno a priezvisko</span>
+        <span class="data-value">Kristián Skoromaslej</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Dátum narodenia</span>
+        <span class="data-value">28.05.2002</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Číslo OP</span>
+        <span class="data-value mono">NE791082</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOZIDLO -->
+  <div class="card">
+    <div class="card-title">Vozidlo</div>
+    <div class="row-grid three">
+      <div class="data-field">
+        <span class="data-label">Značka a model</span>
+        <span class="data-value">Škoda Superb Combi 4×4 Style</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">EČV (ŠPZ)</span>
+        <span class="data-value mono">AA 343 LO</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Rok výroby</span>
+        <span class="data-value">12/2019</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Stav tachometra pri prevzatí</span>
+        <span class="data-value">_____________ km</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Hladina paliva</span>
+        <span class="data-value">viz. merač nižšie</span>
+      </div>
+      <div class="data-field">
+        <span class="data-label">Dohodnutý limit km/deň</span>
+        <span class="data-value">_____________ km/deň</span>
+      </div>
+    </div>
+
+    <!-- PALIVOMER -->
+    <div style="margin-top:16px;">
+      <div class="data-label" style="margin-bottom:6px;">Hladina paliva pri prevzatí — zakrúžkujte</div>
+      <div style="display:flex; align-items:center; gap:12px; font-size:13px; font-weight:700; color:#1a1a2e;">
+        <span>E</span>
+        <div style="flex:1; height:22px; background:#f0f2f5; border-radius:4px; border:1.5px solid #e2e8f0; display:flex; overflow:hidden;">
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#a0aec0;border-right:1px solid #e2e8f0;">1/4</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#a0aec0;border-right:1px solid #e2e8f0;">1/2</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#a0aec0;border-right:1px solid #e2e8f0;">3/4</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#a0aec0;">PLNÝ</div>
+        </div>
+        <span>F</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VÝBAVA -->
+  <div class="card">
+    <div class="card-title">Odovzdaná výbava vozidla</div>
+    <div class="check-grid">
+      <div class="check-item"><div class="check-box ok">✓</div> 2× kľúč od vozidla</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Technický preukaz</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Potvrdenie o PZP</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Lekárnička</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Výstražný trojuholník</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Reflexná vesta</div>
+      <div class="check-item"><div class="check-box ok">✓</div> Diaľničná známka SK</div>
+      <div class="check-item"><div class="check-box"></div> Iné: ___________________</div>
+    </div>
+  </div>
+
+  <!-- STAV VOZIDLA -->
+  <div class="card">
+    <div class="card-title">Stav vozidla pri prevzatí</div>
+    <table class="cond-table">
+      <thead>
+        <tr>
+          <th>Časť vozidla</th>
+          <th>Popis stavu / poznámka</th>
+          <th>Stav</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Predná kapota a nárazník</td><td style="color:#a0aec0;font-size:12px;">bez poškodenia</td><td class="status-ok">✓ OK</td></tr>
+        <tr><td>Čelné sklo</td><td style="color:#a0aec0;font-size:12px;">bez poškodenia</td><td class="status-ok">✓ OK</td></tr>
+        <tr><td>Pravý bok (predný / zadný)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Ľavý bok (predný / zadný)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Strecha</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Zadný nárazník a veko kufra</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Interiér (sedadlá, koberčeky)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Pneumatiky a disky (4×)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Svetlá (predné / zadné)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+        <tr><td>Zrkadlá (ľavé / pravé)</td><td style="color:#a0aec0;font-size:12px;"></td><td>____</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:12px;color:#718096;">
+      Poznámky k stavu: _______________________________________________________________
+      ________________________________________________________________________________
+    </div>
+  </div>
+
+  <!-- FOTODOKUMENTÁCIA -->
+  <div class="card">
+    <div class="card-title">Fotodokumentácia pri prevzatí</div>
+    <p style="font-size:12px;color:#718096;margin-bottom:10px;">Fotografie priložené k protokolu — podpis nájomcu potvrdzuje ich súlad so skutočným stavom.</p>
+    <div class="foto-grid">
+      <div class="foto-box">📷<br>Predok</div>
+      <div class="foto-box">📷<br>Ľavý bok</div>
+      <div class="foto-box">📷<br>Pravý bok</div>
+      <div class="foto-box">📷<br>Zadok</div>
+      <div class="foto-box">📷<br>Tachometer</div>
+      <div class="foto-box">📷<br>Palivo</div>
+      <div class="foto-box">📷<br>Interiér</div>
+      <div class="foto-box">📷<br>Kľúče</div>
+    </div>
+  </div>
+
+  <!-- PODMIENKY -->
+  <div class="card" style="border-left: 4px solid #e53e3e;">
+    <div class="card-title">Nájomca podpisom potvrdzuje</div>
+    <ul style="font-size:12.5px;color:#4a5568;line-height:2;padding-left:18px;">
+      <li>Vozidlo prevzal v stave zodpovedajúcom tomuto protokolu a k nemu priloženej fotodokumentácii.</li>
+      <li>Bol oboznámený s podmienkami nájomnej zmluvy a zaväzuje sa ich dodržiavať.</li>
+      <li>Zákaz fajčenia — pokuta <strong>200 €</strong>. Vozidlo vrátiť čisté, s rovnakou hladinou paliva.</li>
+      <li>Každú nehodu / poškodenie nahlásiť do <strong>2 hodín</strong> na tel.: <strong>+421 911 507 770</strong>.</li>
+      <li>Strata kľúča: <strong>300 €</strong>. Zákaz jazdy pod vplyvom alkoholu / drog.</li>
+    </ul>
+  </div>
+
+  <!-- PODPISY -->
+  <div class="card">
+    <div class="card-title">Podpisy</div>
+    <div class="sig-grid">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-name">Alexander Kubik</div>
+        <div class="sig-role">Prenajímateľ</div>
+        <div class="sig-date">Dátum: _____________________</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-name">Kristián Skoromaslej</div>
+        <div class="sig-role">Nájomca</div>
+        <div class="sig-date">Dátum: _____________________</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Auto-fill date/time and protocol number
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const protNum = 'SK-' + now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(Math.floor(100 + Math.random()*900));
+
+  document.getElementById('today-date').textContent = dateStr;
+  document.getElementById('full-datetime').textContent = dateStr + ' ' + timeStr;
+  document.getElementById('prot-num').textContent = protNum;
+</script>
+</body>
+</html>
