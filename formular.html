@@ -2027,7 +2027,16 @@
       html += `<div style="font-size:12px;color:#718096;margin-top:3px;">${p.miesto_od||'—'} → ${p.miesto_do||'—'}</div>`;
       html += `</div>`;
     });
-    if (totalDni > 0) html += row('Celkom dní', totalDni + (totalDni===1?' deň':totalDni<5?' dni':' dní'));
+    if (totalDni > 0) {
+      html += row('Celkom dní', totalDni + (totalDni===1?' deň':totalDni<5?' dni':' dní'));
+      const kmLimitStr = val('t_km_limit'); // e.g. "230 km/deň"
+      const kmPerDay = parseInt(kmLimitStr);
+      if (kmPerDay > 0) {
+        const totalKm = kmPerDay * totalDni;
+        html += row('Povolený nájazd celkom', `<b>${totalKm.toLocaleString('sk-SK')} km</b> <span style="color:#718096;font-weight:400;">(${kmPerDay} km/deň × ${totalDni} dní)</span>`);
+        html += row('Nadlimit', '0,15 € / km');
+      }
+    }
     html += `<div class="review-section">Cena</div>`;
     html += row('Cena za deň', cena ? cena.toFixed(2) + ' €' : '—');
     html += row('Celkom za prenájom', totalDni > 0 && cena ? celkom + ' €' : '—');
