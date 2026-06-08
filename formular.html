@@ -725,7 +725,27 @@
 
     /* CSV ADMIN */
     #csv-admin { display: none; position: fixed; bottom: 70px; right: 20px; z-index: 9999; background: #1a1a2e; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-  </style>
+
+    /* QUICK CALC */
+    .qc-box { margin-top:16px; border-top:1px solid #e2e8f0; padding-top:14px; }
+    .qc-result { margin-top:10px; background:#f0f7ff; border:1.5px solid #bee3f8; border-radius:8px; padding:12px 14px; font-size:13px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .qc-result-text { flex:1; line-height:1.6; }
+    .btn-qc-apply { background:#1a1a2e; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-qc-apply:hover { opacity:0.85; }
+    /* PERIOD CARDS */
+    .period-card { border:1.5px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:12px; background:#fafafa; }
+    .period-card:last-child { margin-bottom:0; }
+    .period-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .period-label { font-size:13px; font-weight:700; color:#1a1a2e; }
+    .btn-remove-period { background:none; border:1.5px solid #e53e3e; color:#e53e3e; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-remove-period:hover { background:#fff5f5; }
+    /* PHOTOS IN CONTRACT */
+    .photos-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px; }
+    .photo-item { text-align:center; }
+    .photo-item img { max-width:100%; border:1px solid #dde; border-radius:4px; }
+    .photo-item .photo-label { font-size:10px; color:#666; margin-top:4px; font-family:'Segoe UI',Arial,sans-serif; text-transform:uppercase; letter-spacing:0.5px; }
+    @media print { .photos-grid img { max-height:220px; object-fit:contain; } }
+    </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
 </head>
@@ -806,6 +826,18 @@
           <input type="file" id="doc_vp_zad" accept="image/*,.pdf" onchange="showFiles(this,'list_vp_zad')">
         </div>
         <div class="file-list" id="list_vp_zad"></div>
+
+        <div class="qc-box">
+          <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">🧮 Rýchla kalkulácia ceny</div>
+          <div class="fgrid" style="margin-top:0;">
+            <div class="field"><label>Dátum prevzatia</label><input type="date" id="qc_od" onchange="qcUpdate()"></div>
+            <div class="field"><label>Dátum vrátenia</label><input type="date" id="qc_do" onchange="qcUpdate()"></div>
+          </div>
+          <div id="qc-result" class="qc-result" style="display:none;">
+            <div class="qc-result-text" id="qc-text"></div>
+            <button class="btn-qc-apply" onclick="qcApply()">Použiť dátumy →</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -880,68 +912,24 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Termín prenájmu</div>
-        <div class="fgrid">
-          <div class="field">
-            <label>Dátum prevzatia <span class="req">*</span></label>
-            <input type="date" id="t_od" onchange="updatePricing(); wzUpdateStickyInfo()">
-          </div>
-          <div class="field">
-            <label>Čas prevzatia <span class="req">*</span></label>
-            <input type="time" id="t_od_cas" value="10:00">
-          </div>
-          <div class="field">
-            <label>Dátum vrátenia <span class="req">*</span></label>
-            <input type="date" id="t_do" onchange="updatePricing(); wzUpdateStickyInfo()">
-          </div>
-          <div class="field">
-            <label>Čas vrátenia <span class="req">*</span></label>
-            <input type="time" id="t_do_cas" value="10:00">
-          </div>
-          <div class="field">
-            <label>Stav km pri prevzatí</label>
-            <input type="number" id="t_km_od" placeholder="napr. 45 000">
-          </div>
-          <div class="field">
-            <label>Limit km/deň <span style="color:#a0aec0;font-weight:400">(vypočíta sa)</span></label>
-            <input type="text" id="t_km_limit" readonly style="background:#f0f2f5;cursor:default;" placeholder="—">
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div class="card-title" style="margin-bottom:0;">Termíny prenájmu</div>
+          <button onclick="addPeriod()" style="background:#1a1a2e;color:white;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Pridať termín</button>
         </div>
+        <div id="periods-container"></div>
       </div>
 
       <div class="card">
-        <div class="card-title">Miesto odovzdania</div>
+        <div class="card-title">Ďalšie údaje</div>
         <div class="fgrid">
-          <div class="field full">
-            <label>Spôsob prevzatia <span class="req">*</span></label>
-            <select id="t_dovoz_od" onchange="updateMiesto('od')">
-              <option value="vlastne">Vlastné prevzatie (Bratislava – dohodnuté miesto)</option>
-              <option value="dovoz">Dovoz k zákazníkovi v rámci Bratislavy (+20 €)</option>
-            </select>
-          </div>
-          <div class="field full">
-            <label>Miesto prevzatia <span class="req">*</span></label>
-            <input type="text" id="t_miesto_od" placeholder="Adresa alebo miesto prevzatia">
-          </div>
-          <div class="field full">
-            <label>Spôsob vrátenia <span class="req">*</span></label>
-            <select id="t_dovoz_do" onchange="updateMiesto('do')">
-              <option value="vlastne">Vlastné vrátenie (Bratislava – dohodnuté miesto)</option>
-              <option value="odvoz">Prevzatie od zákazníka v rámci Bratislavy (+20 €)</option>
-            </select>
-          </div>
-          <div class="field full">
-            <label>Miesto vrátenia <span class="req">*</span></label>
-            <input type="text" id="t_miesto_do" placeholder="Adresa alebo miesto vrátenia">
-          </div>
-          <div class="field full">
-            <label>Krajiny / trasy</label>
-            <input type="text" id="t_krajiny" placeholder="napr. Slovensko, Česko, Rakúsko">
-          </div>
+          <div class="field"><label>Stav km pri prevzatí</label><input type="number" id="t_km_od" placeholder="napr. 45 000"></div>
+          <div class="field"><label>Limit km/deň <span style="color:#a0aec0;font-weight:400">(vypočíta sa)</span></label><input type="text" id="t_km_limit" readonly style="background:#f0f2f5;cursor:default;" placeholder="—"></div>
+          <div class="field full"><label>Krajiny / trasy</label><input type="text" id="t_krajiny" placeholder="napr. Slovensko, Česko, Rakúsko"></div>
         </div>
       </div>
     </div>
 
+    <!-- ═══ KROK 4
     <!-- ═══ KROK 4: Cena ═══ -->
     <div class="step-panel" id="step-4">
       <div class="card">
@@ -1109,6 +1097,8 @@
     arrow.textContent = open ? '▼' : '▲';
   }
 
+  const _docPhotoURLs = {};
+
   function showFiles(input, listId) {
     const list = document.getElementById(listId);
     list.innerHTML = '';
@@ -1116,6 +1106,10 @@
       const d = document.createElement('div');
       d.textContent = '✅ ' + f.name;
       list.appendChild(d);
+      const reader = new FileReader();
+      const inputId = input.id;
+      reader.onload = e => { _docPhotoURLs[inputId] = e.target.result; };
+      reader.readAsDataURL(f);
     }
   }
 
@@ -1150,67 +1144,134 @@
     return CENNIK.find(t => dni <= t.maxDni) || CENNIK[CENNIK.length - 1];
   }
 
-  function updateMiesto(smer) {
-    // no-op — dropdown is just for clarity, miesto input stays editable
+  // ── PERIODS ──────────────────────────────────────────────────────────────────
+  let _periodsData = [
+    {od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'}
+  ];
+
+  function syncPeriod(i, field, value) {
+    if (_periodsData[i]) _periodsData[i][field] = value;
   }
 
-  function getDovozPoplatok() {
-    const od = document.getElementById('t_dovoz_od').value === 'dovoz' ? 20 : 0;
-    const doVal = document.getElementById('t_dovoz_do').value === 'odvoz' ? 20 : 0;
-    return od + doVal;
+  function renderPeriods() {
+    const container = document.getElementById('periods-container');
+    if (!container) return;
+    container.innerHTML = _periodsData.map((p, i) => `
+      <div class="period-card" id="pc-${i}">
+        <div class="period-header">
+          <span class="period-label">📅 Termín ${i+1}</span>
+          ${_periodsData.length > 1 ? `<button class="btn-remove-period" onclick="removePeriod(${i})">× Odstrániť</button>` : ''}
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>Dátum prevzatia <span class="req">*</span></label><input type="date" id="p${i}_od" value="${p.od}" onchange="syncPeriod(${i},'od',this.value);updatePricing();wzUpdateStickyInfo()"></div>
+          <div class="field"><label>Čas prevzatia <span class="req">*</span></label><input type="time" id="p${i}_od_cas" value="${p.od_cas}" onchange="syncPeriod(${i},'od_cas',this.value)"></div>
+          <div class="field"><label>Dátum vrátenia <span class="req">*</span></label><input type="date" id="p${i}_do" value="${p.do}" onchange="syncPeriod(${i},'do',this.value);updatePricing();wzUpdateStickyInfo()"></div>
+          <div class="field"><label>Čas vrátenia <span class="req">*</span></label><input type="time" id="p${i}_do_cas" value="${p.do_cas}" onchange="syncPeriod(${i},'do_cas',this.value)"></div>
+          <div class="field full"><label>Spôsob prevzatia</label>
+            <select id="p${i}_dovoz_od" onchange="syncPeriod(${i},'dovoz_od',this.value);updatePricing()">
+              <option value="vlastne" ${p.dovoz_od==='vlastne'?'selected':''}>Vlastné prevzatie – Bratislava</option>
+              <option value="dovoz" ${p.dovoz_od==='dovoz'?'selected':''}>Dovoz k zákazníkovi v BA (+20 €)</option>
+            </select></div>
+          <div class="field full"><label>Miesto prevzatia <span class="req">*</span></label><input type="text" id="p${i}_miesto_od" value="${p.miesto_od}" placeholder="Adresa alebo miesto prevzatia" onchange="syncPeriod(${i},'miesto_od',this.value)"></div>
+          <div class="field full"><label>Spôsob vrátenia</label>
+            <select id="p${i}_dovoz_do" onchange="syncPeriod(${i},'dovoz_do',this.value);updatePricing()">
+              <option value="vlastne" ${p.dovoz_do==='vlastne'?'selected':''}>Vlastné vrátenie – Bratislava</option>
+              <option value="odvoz" ${p.dovoz_do==='odvoz'?'selected':''}>Prevzatie od zákazníka v BA (+20 €)</option>
+            </select></div>
+          <div class="field full"><label>Miesto vrátenia <span class="req">*</span></label><input type="text" id="p${i}_miesto_do" value="${p.miesto_do}" placeholder="Adresa alebo miesto vrátenia" onchange="syncPeriod(${i},'miesto_do',this.value)"></div>
+        </div>
+      </div>
+    `).join('');
   }
+
+  function addPeriod() {
+    _periodsData.push({od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'});
+    renderPeriods();
+  }
+
+  function removePeriod(i) {
+    if (_periodsData.length <= 1) return;
+    _periodsData.splice(i, 1);
+    renderPeriods();
+    updatePricing();
+  }
+
+  function getAllDovozPoplatok() {
+    let total = 0;
+    _periodsData.forEach(p => {
+      if (p.dovoz_od === 'dovoz') total += 20;
+      if (p.dovoz_do === 'odvoz') total += 20;
+    });
+    return total;
+  }
+
+  function getDovozPoplatok() { return getAllDovozPoplatok(); }
+  function updateMiesto() {}
 
   function updatePricing() {
-    const d1 = document.getElementById('t_od').value;
-    const d2 = document.getElementById('t_do').value;
+    let totalDni = 0;
+    _periodsData.forEach(p => { if (p.od && p.do) totalDni += daysBetween(p.od, p.do); });
     const box = document.getElementById('price-box');
-    if (!d1 || !d2) { box.style.display = 'none'; return; }
-    const dni = daysBetween(d1, d2);
-    if (dni <= 0) { box.style.display = 'none'; return; }
-    const tier = getTier(dni);
-    const celkom = (dni * tier.cena).toFixed(2);
-    const dovoz = getDovozPoplatok();
-    const celkomSDovozom = (parseFloat(celkom) + dovoz).toFixed(2);
-    document.getElementById('pb_dni').textContent = dni + (dni === 1 ? ' deň' : dni < 5 ? ' dni' : ' dní');
+    if (totalDni <= 0) { box.style.display = 'none'; return; }
+    const tier = getTier(totalDni);
+    const dovoz = getAllDovozPoplatok();
+    const celkom = (totalDni * tier.cena + dovoz).toFixed(2);
+    document.getElementById('pb_dni').textContent = totalDni + (totalDni === 1 ? ' deň' : totalDni < 5 ? ' dni' : ' dní');
     document.getElementById('pb_cena_den').textContent = tier.cena + ' €';
     document.getElementById('pb_km').textContent = tier.km + ' km';
-    document.getElementById('pb_celkom').textContent = celkomSDovozom + ' €' + (dovoz > 0 ? ` (vrátane ${dovoz} € dovoz)` : '');
+    document.getElementById('pb_celkom').textContent = celkom + ' €' + (dovoz > 0 ? ` (vrátane ${dovoz} € dovoz)` : '');
     document.getElementById('f_cena_den').value = tier.cena;
     document.getElementById('t_km_limit').value = tier.km + ' km/deň';
     box.style.display = 'block';
     highlightCennikRow(tier);
   }
 
-  function generateContract() {
-    const required = ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp',
-                      'v_model','v_ecv','t_od','t_od_cas','t_do','t_do_cas','t_miesto_od','t_miesto_do','f_cena_den'];
-    let missing = [];
-    for (const id of required) {
-      const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        el && (el.style.borderColor = '#e53e3e');
-        missing.push(id);
-      } else {
-        el && (el.style.borderColor = '');
-      }
-    }
-    if (missing.length) {
-      alert('Prosím vyplňte všetky povinné polia (označené červenou).');
-      document.getElementById(missing[0]).focus();
-      document.getElementById(missing[0]).scrollIntoView({behavior:'smooth', block:'center'});
-      return;
-    }
+  // ── QUICK CALC ────────────────────────────────────────────────────────────────
+  function qcUpdate() {
+    const od = document.getElementById('qc_od')?.value;
+    const doV = document.getElementById('qc_do')?.value;
+    const result = document.getElementById('qc-result');
+    if (!result) return;
+    if (!od || !doV || od >= doV) { result.style.display = 'none'; return; }
+    const dni = daysBetween(od, doV);
+    const tier = getTier(dni);
+    const celkom = (dni * tier.cena).toFixed(2);
+    document.getElementById('qc-text').innerHTML =
+      `<b>${dni} ${dni===1?'deň':dni<5?'dni':'dní'}</b> · <b>${tier.cena} €/deň</b> · Celkom: <b>${celkom} €</b><br><span style="color:#718096;font-size:11px;">Limit ${tier.km} km/deň + kaucia 300 €</span>`;
+    result.style.display = 'flex';
+  }
 
-    const dni = daysBetween(val('t_od'), val('t_do'));
+  function qcApply() {
+    const od = document.getElementById('qc_od')?.value;
+    const doV = document.getElementById('qc_do')?.value;
+    if (!od || !doV) return;
+    _periodsData[0].od = od;
+    _periodsData[0].do = doV;
+    renderPeriods();
+    updatePricing();
+    wzShow(3);
+  }
+
+  function generateContract() {
+    const required = ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp','v_model','v_ecv','f_cena_den'];
+    let bad = required.filter(id => { const el=document.getElementById(id); const ok=el&&el.value.trim(); if(el){el.style.borderColor=ok?'':'#e53e3e'; el.style.background=ok?'':'#fff5f5';} return !ok; });
+    const p0 = _periodsData[0] || {};
+    if (!p0.od || !p0.do || !p0.miesto_od || !p0.miesto_do) bad.push('period');
+    if (bad.length) { alert('Vyplňte všetky povinné polia (termín, osobné údaje, cena).'); return; }
+
+    let totalDni = 0, totalDovoz = 0;
+    _periodsData.forEach(p => {
+      if (p.od && p.do) totalDni += daysBetween(p.od, p.do);
+      if (p.dovoz_od === 'dovoz') totalDovoz += 20;
+      if (p.dovoz_do === 'odvoz') totalDovoz += 20;
+    });
+
     const cenaDen = parseFloat(val('f_cena_den')) || 0;
-    const dovozPoplatok = getDovozPoplatok();
-    const dovozOd = document.getElementById('t_dovoz_od').value === 'dovoz';
-    const dovozDo = document.getElementById('t_dovoz_do').value === 'odvoz';
-    const celkomBezDovoz = (dni * cenaDen).toFixed(2);
-    const celkom = (parseFloat(celkomBezDovoz) + dovozPoplatok).toFixed(2);
+    const celkomBezDovoz = (totalDni * cenaDen).toFixed(2);
+    const celkom = (totalDni * cenaDen + totalDovoz).toFixed(2);
     const depozit = val('f_depozit') ? val('f_depozit') + ' €' : '300 €';
     const spoluucast = val('f_spoluucast') ? val('f_spoluucast') + ' €' : 'podľa dohody';
-    const kmLimit = val('t_km_limit') || (dni > 0 ? getTier(dni).km + ' km/deň' : 'neobmedzené');
+    const kmLimit = val('t_km_limit') || (totalDni > 0 ? getTier(totalDni).km + ' km/deň' : 'neobmedzené');
     const krajiny = val('t_krajiny') || 'Slovenská republika';
     const poznamky = val('poznamky') || '—';
     const vin = val('v_vin') || '—';
@@ -1218,56 +1279,58 @@
     const kmOd = val('t_km_od') || '___________';
     const vpPlatnost = val('n_vp_platnost') ? formatDate(val('n_vp_platnost')) : '___________';
     const platba = val('f_platba') || 'hotovosť';
-
     const dnesDate = new Date();
     const dnes = `${dnesDate.getDate()}.${dnesDate.getMonth()+1}.${dnesDate.getFullYear()}`;
+    const cisloZmluvy = 'ZMV-' + dnes.replace(/\./g,'-') + '-' + Math.floor(1000+Math.random()*9000);
 
-    const cisloZmluvy = 'ZMV-' + dnes.replace(/\./g,'-') + '-' + Math.floor(1000 + Math.random()*9000);
+    // Period rows for Article III
+    let periodRows = '';
+    const activePeriods = _periodsData.filter(p => p.od && p.do);
+    activePeriods.forEach((p, i) => {
+      const dniP = daysBetween(p.od, p.do);
+      periodRows += activePeriods.length > 1
+        ? `<tr style="background:#f5f6fa;"><td colspan="4" style="font-size:11px;font-weight:700;color:#4a5568;padding:5px 14px;">TERMÍN ${i+1} — ${dniP} ${dniP===1?'deň':dniP<5?'dni':'dní'}${p.dovoz_od==='dovoz'?' · Dovoz +20€':''}${p.dovoz_do==='odvoz'?' · Odvoz +20€':''}</td></tr>` : '';
+      periodRows += `<tr><td><b>Prevzatie vozidla</b></td><td>${formatDate(p.od)}</td><td>${p.od_cas}</td><td>${p.miesto_od}</td></tr>`;
+      periodRows += `<tr><td><b>Vrátenie vozidla</b></td><td>${formatDate(p.do)}</td><td>${p.do_cas}</td><td>${p.miesto_do}</td></tr>`;
+    });
 
-    const html = `
+    // Dovoz rows
+    let dovozRows = '';
+    _periodsData.forEach((p,i) => {
+      const lbl = activePeriods.length > 1 ? ` (Termín ${i+1})` : '';
+      if (p.dovoz_od==='dovoz') dovozRows += `<tr><td>Dovoz vozidla k nájomcovi${lbl}</td><td>20,00 €</td></tr>`;
+      if (p.dovoz_do==='odvoz') dovozRows += `<tr><td>Prevzatie vozidla od nájomcu${lbl}</td><td>20,00 €</td></tr>`;
+    });
+
+    // Photos
+    const photoMap = {doc_op_pred:'Občiansky preukaz — predná strana', doc_op_zad:'Občiansky preukaz — zadná strana', doc_vp_pred:'Vodičský preukaz — predná strana', doc_vp_zad:'Vodičský preukaz — zadná strana'};
+    const photoEntries = Object.entries(photoMap).filter(([id]) => _docPhotoURLs[id]);
+    let photosHTML = '';
+    if (photoEntries.length) {
+      photosHTML = `<h3 style="page-break-before:always;">Príloha — Fotokópie dokladov nájomcu</h3>
+        <p style="font-size:11px;color:#555;margin-bottom:10px;">Fotokópie dokladov tvoria nedeliteľnú súčasť tejto zmluvy.</p>
+        <div class="photos-grid">${photoEntries.map(([id,label]) =>
+          `<div class="photo-item"><img src="${_docPhotoURLs[id]}" alt="${label}"><div class="photo-label">${label}</div></div>`
+        ).join('')}</div>`;
+    }
+
+    const htmlOut = `
       <div class="zmluva-header">
-        <div class="zmluva-header-left">
-          <div class="zmluva-header-logo">Prenájom vozidiel</div>
-          <div>Alexander Kubik &nbsp;·&nbsp; Bratislava</div>
-          <div>Tel.: +421 911 507 770</div>
-        </div>
-        <div class="zmluva-header-right">
-          <div><b>Číslo zmluvy:</b> ${cisloZmluvy}</div>
-          <div><b>Dátum vyhotovenia:</b> ${dnes}</div>
-          <div><b>Miesto:</b> Bratislava</div>
-        </div>
+        <div class="zmluva-header-left"><div class="zmluva-header-logo">Prenájom vozidiel</div><div>Alexander Kubik · Bratislava</div><div>Tel.: +421 911 507 770</div></div>
+        <div class="zmluva-header-right"><div><b>Číslo zmluvy:</b> ${cisloZmluvy}</div><div><b>Dátum:</b> ${dnes}</div><div><b>Miesto:</b> Bratislava</div></div>
       </div>
-
       <h1>Zmluva o prenájme motorového vozidla</h1>
-      <div class="subtitle">uzatvorená podľa § 663 a nasl. zákona č. 40/1964 Zb. Občiansky zákonník v znení neskorších predpisov</div>
+      <div class="subtitle">uzatvorená podľa § 663 a nasl. zákona č. 40/1964 Zb. Občiansky zákonník</div>
       <div class="cislo-zmluvy">Zmluva č. ${cisloZmluvy}</div>
 
       <h3>Článok I. — Zmluvné strany</h3>
       <div class="strany">
-        <div class="strana">
-          <strong>Prenajímateľ</strong>
-          <b>Alexander Kubik</b><br>
-          <span class="blur-sensitive">Trenčianska 58, 821 09 Bratislava</span><br>
-          Číslo OP: <span class="blur-sensitive">RF376035</span><br>
-          Tel.: <span class="blur-sensitive">+421 911 507 770</span><br>
-          E-mail: <span class="blur-sensitive">alex.kubik@gmail.com</span><br>
-          IBAN: <span class="blur-sensitive">SK11 6500 0000 0036 5012 9459</span>
-        </div>
-        <div class="strana">
-          <strong>Nájomca</strong>
-          <b>${val('n_meno')} ${val('n_priezvisko')}</b><br>
-          ${val('n_adresa')}<br>
-          Dátum narodenia: ${formatDate(val('n_datnar'))}<br>
-          Číslo OP / pasu: <b>${val('n_op')}</b><br>
-          Tel.: ${val('n_tel')}<br>
-          E-mail: ${val('n_email')}<br>
-          VP č.: ${val('n_vp')} &nbsp;|&nbsp; platný do: ${vpPlatnost}
-        </div>
+        <div class="strana"><strong>Prenajímateľ</strong><b>Alexander Kubik</b><br><span class="blur-sensitive">Trenčianska 58, 821 09 Bratislava</span><br>Číslo OP: <span class="blur-sensitive">RF376035</span><br>Tel.: <span class="blur-sensitive">+421 911 507 770</span><br>E-mail: <span class="blur-sensitive">alex.kubik@gmail.com</span><br>IBAN: <span class="blur-sensitive">SK11 6500 0000 0036 5012 9459</span></div>
+        <div class="strana"><strong>Nájomca</strong><b>${val('n_meno')} ${val('n_priezvisko')}</b><br>${val('n_adresa')}<br>Dátum narodenia: ${formatDate(val('n_datnar'))}<br>Číslo OP / pasu: <b>${val('n_op')}</b><br>Tel.: ${val('n_tel')}<br>E-mail: ${val('n_email')}<br>VP č.: ${val('n_vp')} | platný do: ${vpPlatnost}</div>
       </div>
-      <p style="font-size:11px;color:#666;margin-top:6px;">Nájomca podpisom tejto zmluvy potvrdzuje, že ním uvedené osobné údaje sú pravdivé a zodpovedajú skutočnosti. Prenajímateľ nie je zodpovedný za škody vzniknuté v dôsledku uvedenia nepravdivých údajov nájomcom.</p>
+      <p style="font-size:11px;color:#666;">Nájomca podpisom potvrdzuje pravdivosť uvedených osobných údajov.</p>
 
       <h3>Článok II. — Predmet zmluvy</h3>
-      <p>Prenajímateľ prenecháva nájomcovi za odplatu do dočasného užívania motorové vozidlo:</p>
       <table>
         <tr><th>Parameter</th><th>Hodnota</th></tr>
         <tr><td>Značka a model</td><td><b>${val('v_model')}</b></td></tr>
@@ -1277,118 +1340,87 @@
         <tr><td>Stav tachometra pri prevzatí</td><td><b>${kmOd} km</b></td></tr>
         <tr><td>Povolené krajiny prevádzky</td><td><b>${krajiny}</b></td></tr>
       </table>
-      <p>Vozidlo je odovzdané nájomcovi s príslušenstvom: 2× kľúč, doklady vozidla (technický preukaz, potvrdenie o PZP), lekárnička, výstražný trojuholník, reflexná vesta. Nájomca prevzatie potvrdzuje podpisom tejto zmluvy.</p>
+      <p>Vozidlo je odovzdané s príslušenstvom: 2× kľúč, doklady (TP, PZP), lekárnička, trojuholník, vesta. Prevzatie nájomca potvrdzuje podpisom.</p>
 
       <h3>Článok III. — Doba a miesto prenájmu</h3>
       <table>
         <tr><th>Udalosť</th><th>Dátum</th><th>Čas</th><th>Miesto</th></tr>
-        <tr><td><b>Prevzatie vozidla</b></td><td>${formatDate(val('t_od'))}</td><td>${val('t_od_cas')}</td><td>${val('t_miesto_od')}</td></tr>
-        <tr><td><b>Vrátenie vozidla</b></td><td>${formatDate(val('t_do'))}</td><td>${val('t_do_cas')}</td><td>${val('t_miesto_do')}</td></tr>
+        ${periodRows}
       </table>
-      <p><b>Celková doba prenájmu:</b> ${dni} ${dni === 1 ? 'deň' : dni < 5 ? 'dni' : 'dní'} &nbsp;|&nbsp; <b>Denný limit km:</b> ${kmLimit}</p>
-      <div class="warn">⚠️ Ak nájomca nevráti vozidlo v dohodnutom termíne bez predchádzajúceho písomného súhlasu prenajímateľa, je povinný uhradiť zmluvnú pokutu vo výške <b>dvojnásobku dennej sadzby za každý začatý deň omeškania</b> (t. j. ${(cenaDen * 2).toFixed(0)} €/deň), a to nad rámec nájomného. Prenajímateľ má zároveň právo vozidlo okamžite prevziať späť na náklady nájomcu a oznámiť vec Polícii SR ako neoprávnené užívanie cudzej veci.</div>
+      <p><b>Celková doba prenájmu:</b> ${totalDni} ${totalDni===1?'deň':totalDni<5?'dni':'dní'} &nbsp;|&nbsp; <b>Denný limit km:</b> ${kmLimit}</p>
+      <div class="warn">⚠️ Neskoré vrátenie bez súhlasu: zmluvná pokuta <b>${(cenaDen*2).toFixed(0)} €/deň</b> nad rámec nájomného.</div>
 
       <h3>Článok IV. — Cena, platba a kaucia</h3>
       <table>
         <tr><th>Položka</th><th>Suma</th></tr>
         <tr><td>Cena za deň</td><td>${cenaDen.toFixed(2)} €</td></tr>
-        <tr><td>Počet dní</td><td>${dni}</td></tr>
+        <tr><td>Celkový počet dní</td><td>${totalDni}</td></tr>
         <tr><td>Nájomné celkom</td><td>${celkomBezDovoz} €</td></tr>
-        ${dovozOd ? `<tr><td>Dovoz vozidla k nájomcovi – Bratislava</td><td>20,00 €</td></tr>` : ''}
-        ${dovozDo ? `<tr><td>Prevzatie vozidla od nájomcu – Bratislava</td><td>20,00 €</td></tr>` : ''}
+        ${dovozRows}
         <tr><td><b>Celková suma k úhrade</b></td><td><b>${celkom} €</b></td></tr>
         <tr><td>Kaucia (depozit)</td><td><b>${depozit}</b></td></tr>
-        <tr><td>Nadlimitné kilometre</td><td><b>0,15 € / km</b></td></tr>
-        <tr><td>Spoluúčasť nájomcu pri škodovej udalosti</td><td><b>${spoluucast}</b></td></tr>
+        <tr><td>Nadlimitné km</td><td><b>0,15 € / km</b></td></tr>
+        <tr><td>Spoluúčasť pri škode</td><td><b>${spoluucast}</b></td></tr>
         <tr><td>Spôsob platby</td><td>${platba}</td></tr>
       </table>
-      <p>Celá suma nájomného a kaucia sú splatné <b>pred prevzatím vozidla</b>. Bez úhrady kauce prenajímateľ nie je povinný vozidlo odovzdať.</p>
-      <p>Kaucia vo výške ${depozit} slúži ako zabezpečenie všetkých pohľadávok prenajímateľa (škody, pokuty, nadlimitné km, neskoré vrátenie, čistenie). Prenajímateľ je oprávnený jednostranne si z kauce uspokojiť akúkoľvek splatnú pohľadávku bez predchádzajúceho súhlasu nájomcu. Zostatok kauce bude vrátený nájomcovi do <b>7 pracovných dní</b> po vrátení vozidla a vysporiadaní všetkých pohľadávok.</p>
-      <p>Za každý km jazdy nad stanovený denný limit nájomca uhradí <b>0,15 € / km</b>, ktorý bude strh­nutý z kauce alebo doplatený pri odovzdaní vozidla.</p>
+      <p>Nájomné a kaucia splatné <b>pred prevzatím vozidla</b>. Kaucia vrátená do <b>7 pracovných dní</b> po vrátení vozidla po vysporiadaní pohľadávok.</p>
 
-      <h3>Článok V. — Povinnosti a záväzky nájomcu</h3>
-      <p><b>5.1</b> Nájomca je oprávnený používať vozidlo výlučne na osobnú dopravu, v súlade s účelom vozidla, platnými dopravnými predpismi SR a krajín, v ktorých vozidlo prevádzkuje.</p>
-      <p><b>5.2</b> Nájomca <b>nesmie</b> bez predchádzajúceho písomného súhlasu prenajímateľa: vozidlo ďalej prenajímať, požičiavať alebo zverovať tretím osobám; použiť vozidlo na komerčnú prepravu osôb alebo nákladu (taxislužba, kuriér a pod.); vycestovať mimo krajín: <b>${krajiny}</b>; vykonávať akékoľvek technické zásahy alebo úpravy vozidla; použiť vozidlo v automobilových pretekoch, testoch alebo off-road teréne.</p>
-      <p><b>5.3</b> Nájomca je povinný udržiavať vozidlo v riadnom technickom stave počas celej doby prenájmu, pravidelne kontrolovať hladiny prevádzkových kvapalín a tlak v pneumatikách.</p>
-      <p><b>5.4</b> Nájomca je povinný vrátiť vozidlo <b>čisté</b>, v rovnakom technickom stave a s rovnakou hladinou paliva, v akom ho prevzal. Ak vozidlo vráti znečistené, prenajímateľ je oprávnený účtovať poplatok za upratanie <b>min. 50 €</b>, prípadne aj viac podľa skutočných nákladov.</p>
-      <div class="warn">🚭 <b>5.5 Zákaz fajčenia</b> v interiéri vozidla. Porušenie: zmluvná pokuta <b>200 €</b> + skutočné náklady na odstraňovanie zápachu a čistenie čalúnenia.</div>
-      <p><b>5.6</b> Nájomca je povinný <b>bezodkladne, najneskôr do 2 hodín</b>, telefonicky oznámiť prenajímateľovi každú dopravnú nehodu, poruchu, poškodenie alebo odcudzenie vozidla. Nájomca je povinný privolať Políciu SR a zabezpečiť spísanie záznamu o nehode vždy, keď vznikla škoda. <b>Bez policajného záznamu prenajímateľ neuzná žiadnu poistnú udalosť a celé náklady opravy hradí nájomca.</b></p>
-      <p><b>5.7</b> V prípade odcudzenia vozidla je nájomca povinný bezodkladne ohlásiť krádež polícii a odovzdať prenajímateľovi oba kľúče od vozidla, kópiu policajného záznamu a všetky doklady. Strata kľúča: <b>300 €</b> zmluvná pokuta.</p>
-      <p><b>5.8</b> Všetky dopravné pokuty, mýto, parkovacie poplatky a iné sankcie uložené počas doby prenájmu <b>hradí výlučne nájomca</b>. Ak ich uhradí prenajímateľ, nájomca je povinný mu ich nahradiť do 7 dní vrátane administratívneho poplatku <b>25 €</b> za každý prípad vybavenia.</p>
-      <div class="warn">🍺 <b>5.9</b> Nájomca nesmie použiť vozidlo pod vplyvom alkoholu, omamných alebo psychotropných látok. Porušenie tohto záväzku zbavuje nájomcu akejkoľvek ochrany z poistenia a zakladá <b>plnú osobnú zodpovednosť</b> nájomcu za všetky vzniknuté škody.</div>
+      <h3>Článok V. — Povinnosti nájomcu</h3>
+      <p><b>5.1</b> Vozidlo len na osobnú dopravu v súlade s predpismi SR a krajín: <b>${krajiny}</b>.</p>
+      <p><b>5.2</b> Bez písomného súhlasu prenajímateľa nájomca nesmie: ďalej prenajímať vozidlo; komerčne prepravovať; vycestovať mimo: <b>${krajiny}</b>; vykonávať technické zásahy; jazdiť v pretekoch alebo off-road.</p>
+      <p><b>5.3</b> Vrátiť vozidlo <b>čisté</b> v rovnakom stave a s rovnakou hladinou paliva. Čistenie min. <b>50 €</b>.</p>
+      <div class="warn">🚭 <b>5.4 Zákaz fajčenia</b> — pokuta <b>200 €</b> + náklady na čistenie.</div>
+      <p><b>5.5</b> Ohlásiť nehodu/poruchu do <b>2 hodín</b>, privolať políciu. Bez policajného záznamu prenajímateľ neuznáva poistnú udalosť — nájomca hradí celú škodu.</p>
+      <p><b>5.6</b> Strata kľúča: <b>300 €</b>. Pokuty/mýto/parkovanie hradí nájomca + <b>25 € / prípad</b> administratívny poplatok.</p>
+      <div class="warn">🍺 <b>5.7 Zákaz jazdy pod vplyvom alkoholu/omamných látok</b> — plná osobná zodpovednosť za všetky škody.</div>
 
       <h3>Článok VI. — Zodpovednosť za škody</h3>
-      <p><b>6.1</b> Nájomca <b>plne zodpovedá</b> za všetky škody na vozidle, ktoré vznikli počas doby prenájmu (od podpisu prevzatia do podpisu vrátenia), s výnimkou preukázateľného predchádzajúceho poškodenia zachyteného v odovzdávacom protokole.</p>
-      <p><b>6.2</b> Spoluúčasť nájomcu pri každej škodovej udalosti je <b>${spoluucast}</b>, a to aj v prípade, že skutočná výška škody je nižšia. Ak škoda presahuje spoluúčasť, nájomca hradí spoluúčasť a zvyšok je riešený z poistenia (ak poistenie vzniknutú udalosť pokrýva).</p>
-      <div class="warn">⚠️ <b>6.3 Poistenie sa nevzťahuje</b> okrem iného na: škody pod vplyvom alkoholu/omamných látok; škody spôsobené inou osobou ako nájomcom; jazdu mimo povolených krajín; škody na pneumatikách, diskoch a podhradí bez nehody; škody z nesprávnej obsluhy (napr. nesprávne palivo). V takýchto prípadoch <b>nájomca hradí celú škodu v plnej výške bez ohľadu na jej výšku.</b></div>
-      <p><b>6.4</b> Prenajímateľ je oprávnený zadržať kauciu až do úplného vysporiadania škody. Ak kaucia nestačí na pokrytie celej škody, nájomca je povinný rozdiel uhradiť do <b>14 dní</b> od doručenia výzvy.</p>
-      <p><b>6.5</b> Počas doby, kedy je vozidlo z dôvodu škody spôsobenej nájomcom nespôsobilé prevádzky (oprava), nájomca uhradí prenajímateľovi <b>náhradu ušlého zisku</b> vo výške dennej sadzby nájomného (${cenaDen.toFixed(0)} €/deň) za každý deň opravy.</p>
+      <p><b>6.1</b> Nájomca plne zodpovedá za škody počas prenájmu okrem preukázaného predchádzajúceho poškodenia z protokolu.</p>
+      <p><b>6.2</b> Spoluúčasť: <b>${spoluucast}</b> pri každej udalosti.</p>
+      <div class="warn">⚠️ Poistenie sa <b>nevzťahuje</b> na: alkohol/omamné látky; iná osoba; mimo povolených krajín; pneumatiky/disky bez nehody; nesprávne palivo → nájomca hradí celú škodu.</div>
+      <p><b>6.3</b> Počas opravy zavinením nájomcu: náhrada ušlého zisku <b>${cenaDen.toFixed(0)} €/deň</b>.</p>
 
       <h3>Článok VII. — Práva prenajímateľa</h3>
-      <p><b>7.1</b> Prenajímateľ je oprávnený kedykoľvek <b>okamžite odstúpiť od zmluvy</b> a požadovať vrátenie vozidla, ak nájomca: poruší akýkoľvek záväzok z tejto zmluvy; použije vozidlo v rozpore s článkom 5.2; vozidlo je v ohrození (napr. zaistené políciou, exekútorom).</p>
-      <p><b>7.2</b> Prenajímateľ má právo sledovať polohu vozidla prostredníctvom GPS zariadenia nainštalovaného vo vozidle za účelom ochrany majetku.</p>
-      <p><b>7.3</b> Prenajímateľ odovzdá vozidlo s platným PZP. Havarijné poistenie <b>nie je</b> súčasťou tejto zmluvy, pokiaľ nie je výslovne dojednané inak.</p>
+      <p>Prenajímateľ môže okamžite odstúpiť od zmluvy pri porušení podmienok. Má právo sledovať polohu vozidla GPS. Havarijné poistenie nie je súčasťou zmluvy.</p>
 
-      <h3>Článok VIII. — Prevzatie a vrátenie vozidla</h3>
-      <p><b>8.1</b> Stav vozidla pri prevzatí a vrátení bude zdokumentovaný fotografiami (exteriér, interiér, tachometer, hladina paliva) potvrdenými oboma zmluvnými stranami. Fotodokumentácia tvorí nedeliteľnú súčasť tejto zmluvy.</p>
-      <p><b>8.2</b> Akékoľvek poškodenie nezachytené pri prevzatí a zistené pri vrátení sa automaticky považuje za škodu spôsobenú nájomcom.</p>
-      <p><b>8.3</b> Vrátenie vozidla s nižšou hladinou paliva ako pri prevzatí: nájomca uhradí chýbajúce palivo podľa aktuálnej ceny na čerpacej stanici <b>+ manipulačný poplatok 20 €</b>.</p>
+      <h3>Článok VIII. — Prevzatie a vrátenie</h3>
+      <p>Stav vozidla zdokumentovaný fotografiami potvrdenými oboma stranami. Poškodenie nezachytené pri prevzatí = škoda nájomcu. Nižšia hladina paliva: cena paliva + <b>20 € manipulácia</b>.</p>
       ${poznamky !== '—' ? `<h3>Článok IX. — Osobitné dojednania</h3><p>${poznamky}</p>` : ''}
 
       <h3>Článok ${poznamky !== '—' ? 'X' : 'IX'}. — Záverečné ustanovenia</h3>
-      <p><b>${poznamky !== '—' ? '10' : '9'}.1</b> Táto zmluva nadobúda platnosť a účinnosť dňom podpisu obidvomi zmluvnými stranami.</p>
-      <p><b>${poznamky !== '—' ? '10' : '9'}.2</b> Zmluvu možno meniť len písomnými dodatkami podpísanými obidvomi stranami.</p>
-      <p><b>${poznamky !== '—' ? '10' : '9'}.3</b> Právne vzťahy touto zmluvou neupravené sa riadia zákonom č. 40/1964 Zb. Občiansky zákonník a súvisiacimi právnymi predpismi SR.</p>
-      <p><b>${poznamky !== '—' ? '10' : '9'}.4</b> Pre prípadné spory je príslušný súd v Bratislave.</p>
-      <p><b>${poznamky !== '—' ? '10' : '9'}.5</b> Zmluva je vyhotovená v dvoch rovnopisoch, každá zmluvná strana obdrží jeden. Nájomca podpisom potvrdzuje, že si zmluvu prečítal, porozumel jej obsahu, súhlasí s ňou a podpisuje ju slobodne a vážne.</p>
+      <p>Zmluva nadobúda platnosť podpisom oboch strán. Riadi sa zákonom č. 40/1964 Zb. Pre spory je príslušný súd v Bratislave. Vyhotovená v 2 rovnopisoch — každá strana obdrží jeden.</p>
 
       <div class="podpisy">
-        <div class="podpis-box">
-          <div class="podpis-linka"></div>
-          <div class="podpis-meno">Alexander Kubik</div>
-          <div class="podpis-rola">Prenajímateľ</div>
-          <div class="podpis-datum">Dátum: _______________</div>
-        </div>
-        <div class="podpis-box">
-          <div class="podpis-linka"></div>
-          <div class="podpis-meno">${val('n_meno')} ${val('n_priezvisko')}</div>
-          <div class="podpis-rola">Nájomca</div>
-          <div class="podpis-datum">Dátum: _______________</div>
-        </div>
+        <div class="podpis-box"><div class="podpis-linka"></div><div class="podpis-meno">Alexander Kubik</div><div class="podpis-rola">Prenajímateľ</div><div class="podpis-datum">Dátum: _______________</div></div>
+        <div class="podpis-box"><div class="podpis-linka"></div><div class="podpis-meno">${val('n_meno')} ${val('n_priezvisko')}</div><div class="podpis-rola">Nájomca</div><div class="podpis-datum">Dátum: _______________</div></div>
       </div>
 
-      <div class="zmluva-paeta">
-        <span>Zmluva č. ${cisloZmluvy} &nbsp;·&nbsp; Vyhotovená dňa ${dnes} v Bratislave &nbsp;·&nbsp; 2 rovnopisy</span>
-        <span>Strana 1/1</span>
-      </div>
+      ${photosHTML}
+
+      <div class="zmluva-paeta"><span>Zmluva č. ${cisloZmluvy} · ${dnes} · Bratislava · 2 rovnopisy</span><span>Strana 1/1</span></div>
     `;
 
-    document.getElementById('zmluva-output').innerHTML = html;
+    document.getElementById('zmluva-output').innerHTML = htmlOut;
     document.getElementById('formular-container').style.display = 'none';
     document.getElementById('zmluva-container').style.display = 'block';
     document.getElementById('sticky-cta').style.display = 'none';
     window.scrollTo({top: 0, behavior: 'smooth'});
 
-    // Build filename: Priezvisko_Meno_YYYY-MM-DD
-    const dnesISO = dnesDate.getFullYear() + '-' +
-      String(dnesDate.getMonth()+1).padStart(2,'0') + '-' +
-      String(dnesDate.getDate()).padStart(2,'0');
+    const dnesISO = dnesDate.getFullYear() + '-' + String(dnesDate.getMonth()+1).padStart(2,'0') + '-' + String(dnesDate.getDate()).padStart(2,'0');
     _currentFilename = (val('n_priezvisko') + '_' + val('n_meno') + '_' + dnesISO).replace(/\s+/g,'_').replace(/[\\/:"*?<>|]/g,'');
 
-    // Save to CSV (localStorage)
     saveContractToCSV({
       cislo_zmluvy: cisloZmluvy, datum: dnes,
       meno: val('n_meno'), priezvisko: val('n_priezvisko'),
       datum_nar: formatDate(val('n_datnar')), op: val('n_op'),
       adresa: val('n_adresa'), tel: val('n_tel'), email: val('n_email'),
       vp: val('n_vp'), vozidlo: val('v_model'), ecv: val('v_ecv'),
-      od: formatDate(val('t_od')), do: formatDate(val('t_do')),
-      dni: dni, cena_den: cenaDen, celkom: celkom, platba: platba,
+      od: formatDate(p0.od), do: formatDate(p0.do),
+      dni: totalDni, cena_den: cenaDen, celkom: celkom, platba: platba,
       kaucia: val('f_depozit'), poznamky: val('poznamky'),
-      status: 'pending'
+      periody: activePeriods.length, status: 'pending'
     });
 
-    // Auto-download PDF after render
     setTimeout(exportPDF, 800);
     renderCalendar();
   }
@@ -1729,29 +1761,40 @@
 
   const WZ_REQUIRED = {
     2: ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp'],
-    3: ['v_model','v_ecv','t_od','t_od_cas','t_do','t_do_cas','t_miesto_od','t_miesto_do'],
+    3: ['v_model','v_ecv'],
     4: ['f_cena_den'],
   };
 
   function wzValidate(step) {
     const ids = WZ_REQUIRED[step];
-    if (!ids) return true;
     let ok = true;
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (!el.value.trim()) {
-        el.style.borderColor = '#e53e3e';
-        el.style.background = '#fff5f5';
-        if (ok) { el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
-        ok = false;
-      } else {
-        el.style.borderColor = '';
-        el.style.background = '';
+    if (ids) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!el.value.trim()) {
+          el.style.borderColor = '#e53e3e'; el.style.background = '#fff5f5';
+          if (ok) { el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+          ok = false;
+        } else { el.style.borderColor = ''; el.style.background = ''; }
+      });
+    }
+    if (step === 3) {
+      const p0 = _periodsData[0] || {};
+      ['od','do','miesto_od','miesto_do'].forEach(f => {
+        if (!p0[f]) {
+          const el = document.getElementById('p0_' + f);
+          if (el) { el.style.borderColor='#e53e3e'; el.style.background='#fff5f5'; if(ok){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});} }
+          ok = false;
+        }
+      });
+      for (let i = 0; i < _periodsData.length; i++) {
+        const p = _periodsData[i];
+        if (p.od && p.do && p.od >= p.do) { alert(`Termín ${i+1}: Dátum prevzatia musí byť pred dátumom vrátenia.`); return false; }
       }
-    });
+    }
     if (!ok) {
-      const msgs = {2:'Vyplňte všetky povinné polia nájomcu.', 3:'Vyplňte termín a miesto.', 4:'Zadajte cenu za deň.'};
+      const msgs = {2:'Vyplňte všetky povinné polia nájomcu.', 3:'Vyplňte termín prevzatia, vrátenia a miesta.', 4:'Zadajte cenu za deň.'};
       alert(msgs[step] || 'Vyplňte povinné polia.');
     }
     return ok;
@@ -1824,70 +1867,70 @@
   function wzUpdateStickyInfo() {
     const line1 = document.getElementById('sticky-line1');
     if (!line1) return;
-    const od = val('t_od'), doD = val('t_do'), cena = val('f_cena_den');
+    const p0 = _periodsData[0] || {};
+    const cena = val('f_cena_den');
+    let totalDni = 0;
+    _periodsData.forEach(p => { if(p.od&&p.do) totalDni += daysBetween(p.od,p.do); });
     const parts = [];
-    if (od && doD) {
-      const dni = daysBetween(od, doD);
-      parts.push(formatDate(od) + ' – ' + formatDate(doD));
-      if (dni > 0) parts.push(dni + (dni===1?' deň':dni<5?' dni':' dní'));
+    if (p0.od && p0.do) {
+      parts.push(formatDate(p0.od) + ' – ' + formatDate(p0.do));
+      if (totalDni > 0) parts.push(totalDni + (totalDni===1?' deň':totalDni<5?' dni':' dní'));
+      const cnt = _periodsData.filter(p=>p.od&&p.do).length;
+      if (cnt > 1) parts.push(cnt + ' termíny');
     }
     if (cena) parts.push(cena + ' €/deň');
-    if (parts.length) line1.textContent = parts.join(' · ');
-    else line1.textContent = 'Škoda Superb Combi 4×4 Style';
+    line1.textContent = parts.length ? parts.join(' · ') : 'Škoda Superb Combi 4×4 Style';
   }
 
   function wzBuildReview() {
     const el = document.getElementById('review-content');
     if (!el) return;
-
+    function row(k, v) { return `<div class="review-row"><span class="review-key">${k}</span><span class="review-val">${v}</span></div>`; }
     const meno = val('n_meno') + ' ' + val('n_priezvisko');
-    const od = val('t_od'), doD = val('t_do');
-    const dni = daysBetween(od, doD);
+    let totalDni = 0;
+    _periodsData.forEach(p => { if(p.od&&p.do) totalDni += daysBetween(p.od,p.do); });
     const cena = parseFloat(val('f_cena_den')) || 0;
     const depozit = val('f_depozit') || '300';
-    const dovoz = getDovozPoplatok();
-    const celkom = (dni * cena + dovoz).toFixed(2);
-    const missingIds = ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp',
-                        'v_model','v_ecv','t_od','t_do','t_miesto_od','t_miesto_do','f_cena_den'];
+    const dovoz = getAllDovozPoplatok();
+    const celkom = (totalDni * cena + dovoz).toFixed(2);
+    const p0 = _periodsData[0] || {};
+    const missingIds = ['n_meno','n_priezvisko','n_datnar','n_op','n_adresa','n_tel','n_email','n_vp','v_model','v_ecv','f_cena_den'];
     const missing = missingIds.filter(id => !val(id));
-
+    const missingPeriod = !p0.od || !p0.do || !p0.miesto_od || !p0.miesto_do;
     let html = '';
-
-    if (missing.length) {
-      html += `<div class="review-warn">⚠️ Chýba ${missing.length} povinné ${missing.length===1?'pole':'polia'}. Vráťte sa a doplňte ich pred generovaním.</div>`;
+    if (missing.length || missingPeriod) {
+      const total = missing.length + (missingPeriod ? 1 : 0);
+      html += `<div class="review-warn">⚠️ Chýba ${total} povinné ${total===1?'pole':'polia'}. Vráťte sa a doplňte ich.</div>`;
     }
-
     html += `<div class="review-section">Nájomca</div>`;
-    html += row('Meno', meno || '—');
+    html += row('Meno', meno.trim() || '—');
     html += row('Dátum nar.', formatDate(val('n_datnar')) || '—');
     html += row('OP / pas', val('n_op') || '—');
-    html += row('Kontakt', val('n_tel') + ' · ' + val('n_email'));
-
+    html += row('Kontakt', [val('n_tel'), val('n_email')].filter(Boolean).join(' · ') || '—');
     html += `<div class="review-section">Vozidlo</div>`;
     html += row('Model', val('v_model') || '—');
     html += row('EČV', val('v_ecv') || '—');
-
-    html += `<div class="review-section">Termín</div>`;
-    html += row('Prevzatie', (od ? formatDate(od) : '—') + ' ' + val('t_od_cas'));
-    html += row('Vrátenie', (doD ? formatDate(doD) : '—') + ' ' + val('t_do_cas'));
-    html += row('Počet dní', dni > 0 ? dni + (dni===1?' deň':dni<5?' dni':' dní') : '—');
-    html += row('Miesto prevzatia', val('t_miesto_od') || '—');
-    html += row('Miesto vrátenia', val('t_miesto_do') || '—');
-
+    html += `<div class="review-section">Termíny (${_periodsData.filter(p=>p.od&&p.do).length})</div>`;
+    _periodsData.forEach((p, i) => {
+      const dniP = (p.od && p.do) ? daysBetween(p.od, p.do) : 0;
+      html += `<div style="background:#f7f8fa;border-radius:8px;padding:10px 12px;margin:6px 0;">`;
+      html += `<div style="font-size:11px;font-weight:700;color:#4a5568;text-transform:uppercase;margin-bottom:6px;">Termín ${i+1}${dniP>0?' · '+dniP+' '+(dniP===1?'deň':dniP<5?'dni':'dní'):''}</div>`;
+      html += `<div style="font-size:13px;color:#1a1a2e;">${p.od?formatDate(p.od):'—'} ${p.od_cas||''} → ${p.do?formatDate(p.do):'—'} ${p.do_cas||''}</div>`;
+      html += `<div style="font-size:12px;color:#718096;margin-top:3px;">${p.miesto_od||'—'} → ${p.miesto_do||'—'}</div>`;
+      html += `</div>`;
+    });
+    if (totalDni > 0) html += row('Celkom dní', totalDni + (totalDni===1?' deň':totalDni<5?' dni':' dní'));
     html += `<div class="review-section">Cena</div>`;
     html += row('Cena za deň', cena ? cena.toFixed(2) + ' €' : '—');
-    html += row('Celkom za prenájom', dni > 0 && cena ? celkom + ' €' : '—');
+    html += row('Celkom za prenájom', totalDni > 0 && cena ? celkom + ' €' : '—');
     html += row('Kaucia', depozit + ' €');
     html += row('Spôsob platby', val('f_platba') || '—');
-
+    const photoCount = Object.keys(_docPhotoURLs).length;
+    if (photoCount > 0) { html += `<div class="review-section">Doklady</div>`; html += row('Fotky dokladov', photoCount + '× (priložia sa k zmluve)'); }
     el.innerHTML = html;
-
-    function row(k, v) {
-      return `<div class="review-row"><span class="review-key">${k}</span><span class="review-val">${v}</span></div>`;
-    }
   }
 
-  function toggleAccordion(id, btn) {
+    function toggleAccordion(id, btn) {
     const body = document.getElementById(id);
     if (!body) return;
     const isOpen = body.classList.contains('open');
@@ -1900,6 +1943,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     renderCalendar();
     renderCennikTable();
+    renderPeriods();
     wzShow(1);
   });
 </script>
