@@ -828,11 +828,11 @@
         <div class="file-list" id="list_vp_zad"></div>
 
         <div class="qc-box">
-          <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">🧮 Rýchla kalkulácia ceny</div>
-          <div class="fgrid" style="margin-top:0;">
-            <div class="field"><label>Dátum prevzatia</label><input type="date" id="qc_od" onchange="qcUpdate()"></div>
-            <div class="field"><label>Dátum vrátenia</label><input type="date" id="qc_do" onchange="qcUpdate()"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:700;color:#1a1a2e;">🧮 Rýchla kalkulácia ceny</div>
+            <button onclick="qcAddRow()" title="Pridať ďalší termín" style="width:28px;height:28px;border-radius:50%;background:#1a1a2e;color:white;border:none;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
+          <div id="qc-rows"></div>
           <div id="qc-result" class="qc-result" style="display:none;">
             <div class="qc-result-text" id="qc-text"></div>
             <button class="btn-qc-apply" onclick="qcApply()">Použiť dátumy →</button>
@@ -1227,26 +1227,54 @@
   }
 
   // ── QUICK CALC ────────────────────────────────────────────────────────────────
+  let _qcRows = [{od:'', do:''}];
+
+  function qcRenderRows() {
+    const container = document.getElementById('qc-rows');
+    if (!container) return;
+    container.innerHTML = _qcRows.map((r, i) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div class="fgrid" style="margin-top:0;flex:1;gap:8px;">
+          <div class="field"><label style="font-size:11px;">Prevzatie</label><input type="date" value="${r.od}" onchange="_qcRows[${i}].od=this.value;qcUpdate()"></div>
+          <div class="field"><label style="font-size:11px;">Vrátenie</label><input type="date" value="${r.do}" onchange="_qcRows[${i}].do=this.value;qcUpdate()"></div>
+        </div>
+        ${_qcRows.length > 1 ? `<button onclick="qcRemoveRow(${i})" title="Odstrániť" style="width:26px;height:26px;border-radius:50%;background:none;border:1.5px solid #e53e3e;color:#e53e3e;font-size:15px;line-height:1;cursor:pointer;flex-shrink:0;margin-top:16px;">×</button>` : '<div style="width:26px;flex-shrink:0;margin-top:16px;"></div>'}
+      </div>
+    `).join('');
+    qcUpdate();
+  }
+
+  function qcAddRow() {
+    _qcRows.push({od:'', do:''});
+    qcRenderRows();
+  }
+
+  function qcRemoveRow(i) {
+    _qcRows.splice(i, 1);
+    qcRenderRows();
+  }
+
   function qcUpdate() {
-    const od = document.getElementById('qc_od')?.value;
-    const doV = document.getElementById('qc_do')?.value;
     const result = document.getElementById('qc-result');
     if (!result) return;
-    if (!od || !doV || od >= doV) { result.style.display = 'none'; return; }
-    const dni = daysBetween(od, doV);
-    const tier = getTier(dni);
-    const celkom = (dni * tier.cena).toFixed(2);
+    let totalDni = 0;
+    const valid = _qcRows.filter(r => r.od && r.do && r.od < r.do);
+    valid.forEach(r => { totalDni += daysBetween(r.od, r.do); });
+    if (!valid.length || totalDni <= 0) { result.style.display = 'none'; return; }
+    const tier = getTier(totalDni);
+    const celkom = (totalDni * tier.cena).toFixed(2);
+    const terminyText = valid.length > 1
+      ? `<span style="color:#718096;font-size:11px;">${valid.length} termíny · </span>`
+      : '';
     document.getElementById('qc-text').innerHTML =
-      `<b>${dni} ${dni===1?'deň':dni<5?'dni':'dní'}</b> · <b>${tier.cena} €/deň</b> · Celkom: <b>${celkom} €</b><br><span style="color:#718096;font-size:11px;">Limit ${tier.km} km/deň + kaucia 300 €</span>`;
+      `${terminyText}<b>${totalDni} ${totalDni===1?'deň':totalDni<5?'dni':'dní'}</b> · <b>${tier.cena} €/deň</b> · Celkom: <b>${celkom} €</b><br><span style="color:#718096;font-size:11px;">Limit ${tier.km} km/deň · kaucia 300 €</span>`;
     result.style.display = 'flex';
   }
 
   function qcApply() {
-    const od = document.getElementById('qc_od')?.value;
-    const doV = document.getElementById('qc_do')?.value;
-    if (!od || !doV) return;
-    _periodsData[0].od = od;
-    _periodsData[0].do = doV;
+    const valid = _qcRows.filter(r => r.od && r.do && r.od < r.do);
+    if (!valid.length) return;
+    _periodsData = valid.map(r => ({od:r.od, od_cas:'10:00', do:r.do, do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'}));
     renderPeriods();
     updatePricing();
     wzShow(3);
@@ -1944,6 +1972,7 @@
     renderCalendar();
     renderCennikTable();
     renderPeriods();
+    qcRenderRows();
     wzShow(1);
   });
 </script>
