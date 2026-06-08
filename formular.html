@@ -1330,17 +1330,54 @@
   function qcUpdate() {
     const result = document.getElementById('qc-result');
     if (!result) return;
-    let totalDni = 0;
     const valid = _qcRows.filter(r => r.od && r.do && r.od < r.do);
+    let totalDni = 0;
     valid.forEach(r => { totalDni += daysBetween(r.od, r.do); });
     if (!valid.length || totalDni <= 0) { result.style.display = 'none'; return; }
-    const tier = getTier(totalDni);
-    const celkom = (totalDni * tier.cena).toFixed(2);
-    const terminyText = valid.length > 1
-      ? `<span style="color:#718096;font-size:11px;">${valid.length} termíny · </span>`
-      : '';
-    document.getElementById('qc-text').innerHTML =
-      `${terminyText}<b>${totalDni} ${totalDni===1?'deň':totalDni<5?'dni':'dní'}</b> · <b>${tier.cena} €/deň</b> · Celkom: <b>${celkom} €</b><br><span style="color:#718096;font-size:11px;">Limit ${tier.km} km/deň · kaucia 300 €</span>`;
+
+    const totalTier = getTier(totalDni);
+    const totalCelkom = (totalDni * totalTier.cena).toFixed(2);
+    const totalKm = totalDni * totalTier.km;
+
+    let html = '';
+
+    if (valid.length > 1) {
+      // Per-row breakdown
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">`;
+      html += `<tr style="color:#718096;font-size:11px;"><th style="text-align:left;padding:2px 6px 4px 0;font-weight:600;">Obdobie</th><th style="text-align:right;padding:2px 6px 4px;font-weight:600;">Dní</th><th style="text-align:right;padding:2px 6px 4px;font-weight:600;">Max km</th><th style="text-align:right;padding:2px 0 4px 6px;font-weight:600;">Cena</th></tr>`;
+      valid.forEach((r, i) => {
+        const dni = daysBetween(r.od, r.do);
+        const tier = getTier(dni);
+        const km = dni * tier.km;
+        const cena = (dni * tier.cena).toFixed(2);
+        const od = r.od.split('-').reverse().join('.');
+        const doD = r.do.split('-').reverse().join('.');
+        html += `<tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:5px 6px 5px 0;color:#1a1a2e;">${od} – ${doD}</td>
+          <td style="text-align:right;padding:5px 6px;font-weight:600;">${dni}</td>
+          <td style="text-align:right;padding:5px 6px;color:#3182ce;font-weight:600;">${km.toLocaleString('sk-SK')} km</td>
+          <td style="text-align:right;padding:5px 0 5px 6px;font-weight:600;">${cena} €</td>
+        </tr>`;
+      });
+      html += `<tr style="border-top:2px solid #1a1a2e;background:#f0f7ff;">
+        <td style="padding:6px 6px 6px 0;font-weight:700;font-size:13px;">Spolu</td>
+        <td style="text-align:right;padding:6px;font-weight:700;font-size:13px;">${totalDni}</td>
+        <td style="text-align:right;padding:6px;font-weight:700;font-size:13px;color:#3182ce;">${totalKm.toLocaleString('sk-SK')} km</td>
+        <td style="text-align:right;padding:6px 0 6px 6px;font-weight:700;font-size:13px;">${totalCelkom} €</td>
+      </tr>`;
+      html += `</table>`;
+      html += `<div style="font-size:11px;color:#718096;">${totalTier.cena} €/deň · limit ${totalTier.km} km/deň · kaucia 300 € · nadlimit 0,15 €/km</div>`;
+    } else {
+      // Single row — compact
+      const r = valid[0];
+      const dni = daysBetween(r.od, r.do);
+      const tier = getTier(dni);
+      const km = dni * tier.km;
+      html += `<b>${dni} ${dni===1?'deň':dni<5?'dni':'dní'}</b> · <b>${tier.cena} €/deň</b> · Max: <b>${km.toLocaleString('sk-SK')} km</b> · Celkom: <b>${totalCelkom} €</b><br>`;
+      html += `<span style="color:#718096;font-size:11px;">Limit ${tier.km} km/deň · kaucia 300 € · nadlimit 0,15 €/km</span>`;
+    }
+
+    document.getElementById('qc-text').innerHTML = html;
     result.style.display = 'flex';
   }
 
