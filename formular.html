@@ -978,6 +978,45 @@
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Záloha pri rezervácii</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4a5568;cursor:pointer;">
+            <input type="checkbox" id="f_zaloha_yn" onchange="toggleZaloha(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+            Požadovať zálohu
+          </label>
+        </div>
+        <div id="zaloha-fields" style="display:none;">
+          <div class="fgrid">
+            <div class="field">
+              <label>Výška zálohy (€)</label>
+              <input type="number" id="f_zaloha" placeholder="napr. 150" min="0">
+            </div>
+            <div class="field">
+              <label>Splatná do</label>
+              <input type="date" id="f_zaloha_datum">
+            </div>
+            <div class="field full">
+              <label>Storno podmienky</label>
+              <select id="f_storno" onchange="updateStornoText()">
+                <option value="standard">Štandard: 7+ dní = 100 %, 3–6 dní = 50 %, menej = 0 %</option>
+                <option value="strict">Prísne: 14+ dní = 100 %, 7–13 dní = 50 %, menej = 0 %</option>
+                <option value="flexible">Flexibilné: 3+ dni = 100 %, menej = 50 %</option>
+                <option value="nonrefundable">Nevratná záloha (bez výnimky)</option>
+                <option value="custom">Vlastné podmienky (vyplniť ručne)</option>
+              </select>
+            </div>
+            <div class="field full" id="storno-custom-wrap" style="display:none;">
+              <label>Vlastné storno podmienky</label>
+              <textarea id="f_storno_custom" placeholder="Popíšte vlastné storno podmienky..." style="min-height:60px;"></textarea>
+            </div>
+            <div class="field full">
+              <div id="storno-preview" style="background:#fffbea;border:1px solid #f6e05e;border-radius:8px;padding:10px 13px;font-size:12px;color:#744210;line-height:1.6;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ═══ KROK 5: Kontrola ═══ -->
@@ -1226,6 +1265,40 @@
     highlightCennikRow(tier);
   }
 
+  // ── ZÁLOHA ───────────────────────────────────────────────────────────────────
+  const STORNO_TEXTS = {
+    standard: 'Zrušenie rezervácie 7 a viac dní pred prevzatím: záloha vrátená v plnej výške.\nZrušenie 3 – 6 dní pred prevzatím: vrátená 50 % zálohy.\nZrušenie menej ako 3 dni pred prevzatím: záloha prepadá v plnej výške.',
+    strict:   'Zrušenie rezervácie 14 a viac dní pred prevzatím: záloha vrátená v plnej výške.\nZrušenie 7 – 13 dní pred prevzatím: vrátená 50 % zálohy.\nZrušenie menej ako 7 dní pred prevzatím: záloha prepadá v plnej výške.',
+    flexible: 'Zrušenie rezervácie 3 a viac dní pred prevzatím: záloha vrátená v plnej výške.\nZrušenie menej ako 3 dni pred prevzatím: vrátená 50 % zálohy.',
+    nonrefundable: 'Záloha je nevratná. Po jej uhradení nemá nájomca nárok na vrátenie zálohy bez ohľadu na dôvod zrušenia.',
+    custom: ''
+  };
+
+  function toggleZaloha(checked) {
+    document.getElementById('zaloha-fields').style.display = checked ? 'block' : 'none';
+    if (checked) updateStornoText();
+  }
+
+  function updateStornoText() {
+    const val2 = document.getElementById('f_storno').value;
+    const customWrap = document.getElementById('storno-custom-wrap');
+    const preview = document.getElementById('storno-preview');
+    customWrap.style.display = val2 === 'custom' ? 'block' : 'none';
+    if (val2 === 'custom') {
+      preview.style.display = 'none';
+    } else {
+      preview.style.display = 'block';
+      preview.innerHTML = '📋 ' + STORNO_TEXTS[val2].replace(/\n/g, '<br>');
+    }
+  }
+
+  function getStornoText() {
+    if (!document.getElementById('f_zaloha_yn')?.checked) return null;
+    const sel = document.getElementById('f_storno')?.value;
+    if (sel === 'custom') return document.getElementById('f_storno_custom')?.value?.trim() || null;
+    return STORNO_TEXTS[sel] || null;
+  }
+
   // ── QUICK CALC ────────────────────────────────────────────────────────────────
   let _qcRows = [{od:'', do:''}];
 
@@ -1307,6 +1380,10 @@
     const kmOd = val('t_km_od') || '___________';
     const vpPlatnost = val('n_vp_platnost') ? formatDate(val('n_vp_platnost')) : '___________';
     const platba = val('f_platba') || 'hotovosť';
+    const zalohaYN = document.getElementById('f_zaloha_yn')?.checked;
+    const zalohaSum = zalohaYN ? (val('f_zaloha') || '0') : null;
+    const zalohaDatum = zalohaYN && val('f_zaloha_datum') ? formatDate(val('f_zaloha_datum')) : null;
+    const stornoText = getStornoText();
     const dnesDate = new Date();
     const dnes = `${dnesDate.getDate()}.${dnesDate.getMonth()+1}.${dnesDate.getFullYear()}`;
     const cisloZmluvy = 'ZMV-' + dnes.replace(/\./g,'-') + '-' + Math.floor(1000+Math.random()*9000);
@@ -1386,12 +1463,15 @@
         <tr><td>Nájomné celkom</td><td>${celkomBezDovoz} €</td></tr>
         ${dovozRows}
         <tr><td><b>Celková suma k úhrade</b></td><td><b>${celkom} €</b></td></tr>
+        ${zalohaYN ? `<tr style="background:#fffbea;"><td><b>Záloha pri rezervácii</b>${zalohaDatum ? ` (splatná do ${zalohaDatum})` : ''}</td><td><b>${zalohaSum} €</b></td></tr>` : ''}
         <tr><td>Kaucia (depozit)</td><td><b>${depozit}</b></td></tr>
         <tr><td>Nadlimitné km</td><td><b>0,15 € / km</b></td></tr>
         <tr><td>Spoluúčasť pri škode</td><td><b>${spoluucast}</b></td></tr>
         <tr><td>Spôsob platby</td><td>${platba}</td></tr>
       </table>
-      <p>Nájomné a kaucia splatné <b>pred prevzatím vozidla</b>. Kaucia vrátená do <b>7 pracovných dní</b> po vrátení vozidla po vysporiadaní pohľadávok.</p>
+      ${zalohaYN ? `<p>Nájomca je povinný uhradiť zálohu vo výške <b>${zalohaSum} €</b>${zalohaDatum ? ` najneskôr do <b>${zalohaDatum}</b>` : ' pred prevzatím vozidla'}. Záloha sa odpočíta od celkovej sumy nájomného. Bez uhradenia zálohy sa rezervácia nepovažuje za záväznú.</p>` : ''}
+      <p>Zostatok nájomného a kaucia sú splatné <b>pred prevzatím vozidla</b>. Kaucia vrátená do <b>7 pracovných dní</b> po vrátení vozidla po vysporiadaní pohľadávok.</p>
+      ${zalohaYN && stornoText ? `<div class="warn" style="background:#fffbea;border-color:#d69e2e;">📋 <b>Storno podmienky (záloha):</b><br>${stornoText.replace(/\n/g,'<br>')}</div>` : ''}
 
       <h3>Článok V. — Povinnosti nájomcu</h3>
       <p><b>5.1</b> Vozidlo len na osobnú dopravu v súlade s predpismi SR a krajín: <b>${krajiny}</b>.</p>
@@ -1953,6 +2033,14 @@
     html += row('Celkom za prenájom', totalDni > 0 && cena ? celkom + ' €' : '—');
     html += row('Kaucia', depozit + ' €');
     html += row('Spôsob platby', val('f_platba') || '—');
+    const zYN = document.getElementById('f_zaloha_yn')?.checked;
+    if (zYN) {
+      const zSum = val('f_zaloha'); const zDat = val('f_zaloha_datum');
+      html += row('Záloha', (zSum ? zSum + ' €' : '—') + (zDat ? ' · splatná ' + formatDate(zDat) : ''));
+      const sto = document.getElementById('f_storno')?.value;
+      const stoLabels = {standard:'Štandard',strict:'Prísne',flexible:'Flexibilné',nonrefundable:'Nevratná',custom:'Vlastné'};
+      html += row('Storno podmienky', stoLabels[sto] || '—');
+    }
     const photoCount = Object.keys(_docPhotoURLs).length;
     if (photoCount > 0) { html += `<div class="review-section">Doklady</div>`; html += row('Fotky dokladov', photoCount + '× (priložia sa k zmluve)'); }
     el.innerHTML = html;
