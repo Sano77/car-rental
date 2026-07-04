@@ -1185,17 +1185,30 @@
 
   // ── PERIODS ──────────────────────────────────────────────────────────────────
   let _periodsData = [
-    {od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'}
+    {od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne', cena_den:null}
   ];
 
   function syncPeriod(i, field, value) {
     if (_periodsData[i]) _periodsData[i][field] = value;
   }
 
+  function periodAutoPrice(p) {
+    if (!p.od || !p.do || p.od >= p.do) return null;
+    return getTier(daysBetween(p.od, p.do)).cena;
+  }
+
+  function periodEffectivePrice(p) {
+    if (p.cena_den !== null && p.cena_den !== undefined && p.cena_den !== '') return parseFloat(p.cena_den);
+    return periodAutoPrice(p) || 0;
+  }
+
   function renderPeriods() {
     const container = document.getElementById('periods-container');
     if (!container) return;
-    container.innerHTML = _periodsData.map((p, i) => `
+    container.innerHTML = _periodsData.map((p, i) => {
+      const autoP = periodAutoPrice(p);
+      const hasCustom = p.cena_den !== null && p.cena_den !== undefined && p.cena_den !== '';
+      return `
       <div class="period-card" id="pc-${i}">
         <div class="period-header">
           <span class="period-label">📅 Termín ${i+1}</span>
@@ -1206,6 +1219,16 @@
           <div class="field"><label>Čas prevzatia <span class="req">*</span></label><input type="time" id="p${i}_od_cas" value="${p.od_cas}" onchange="syncPeriod(${i},'od_cas',this.value)"></div>
           <div class="field"><label>Dátum vrátenia <span class="req">*</span></label><input type="date" id="p${i}_do" value="${p.do}" onchange="syncPeriod(${i},'do',this.value);updatePricing();wzUpdateStickyInfo()"></div>
           <div class="field"><label>Čas vrátenia <span class="req">*</span></label><input type="time" id="p${i}_do_cas" value="${p.do_cas}" onchange="syncPeriod(${i},'do_cas',this.value)"></div>
+          <div class="field">
+            <label>Cena €/deň ${hasCustom ? '<span style="color:#e53e3e;font-size:10px;font-weight:700;">VLASTNÁ</span>' : '<span style="color:#a0aec0;font-weight:400;font-size:10px;">z cenníka</span>'}</label>
+            <input type="number" id="p${i}_cena_den" value="${hasCustom ? p.cena_den : ''}"
+              placeholder="${autoP ? autoP + ' €' : '—'}" min="0" step="1"
+              style="${hasCustom ? 'border-color:#e53e3e;background:#fff5f5;font-weight:700;' : ''}"
+              onchange="syncPeriod(${i},'cena_den',this.value!==''?parseFloat(this.value):null);this.style.borderColor=this.value?'#e53e3e':'';this.style.background=this.value?'#fff5f5':'';this.style.fontWeight=this.value?'700':'';updatePricing();wzUpdateStickyInfo()">
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end;">
+            ${hasCustom ? `<button onclick="syncPeriod(${i},'cena_den',null);document.getElementById('p${i}_cena_den').value='';document.getElementById('p${i}_cena_den').style='';updatePricing();renderPeriods();" style="padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:12px;cursor:pointer;color:#718096;width:100%;">↺ Cenník</button>` : ''}
+          </div>
           <div class="field full"><label>Spôsob prevzatia</label>
             <select id="p${i}_dovoz_od" onchange="syncPeriod(${i},'dovoz_od',this.value);updatePricing()">
               <option value="vlastne" ${p.dovoz_od==='vlastne'?'selected':''}>Vlastné prevzatie – Bratislava</option>
@@ -1219,12 +1242,12 @@
             </select></div>
           <div class="field full"><label>Miesto vrátenia <span class="req">*</span></label><input type="text" id="p${i}_miesto_do" value="${p.miesto_do}" placeholder="Adresa alebo miesto vrátenia" onchange="syncPeriod(${i},'miesto_do',this.value)"></div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   function addPeriod() {
-    _periodsData.push({od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'});
+    _periodsData.push({od:'', od_cas:'10:00', do:'', do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne', cena_den:null});
     renderPeriods();
   }
 
@@ -1248,18 +1271,26 @@
   function updateMiesto() {}
 
   function updatePricing() {
-    let totalDni = 0;
-    _periodsData.forEach(p => { if (p.od && p.do) totalDni += daysBetween(p.od, p.do); });
+    let totalDni = 0, totalCena = 0;
+    _periodsData.forEach(p => {
+      if (p.od && p.do) {
+        const dni = daysBetween(p.od, p.do);
+        totalDni += dni;
+        totalCena += dni * periodEffectivePrice(p);
+      }
+    });
     const box = document.getElementById('price-box');
     if (totalDni <= 0) { box.style.display = 'none'; return; }
     const tier = getTier(totalDni);
     const dovoz = getAllDovozPoplatok();
-    const celkom = (totalDni * tier.cena + dovoz).toFixed(2);
+    const hasCustom = _periodsData.some(p => p.cena_den !== null && p.cena_den !== undefined && p.cena_den !== '');
+    const avgCena = (totalCena / totalDni).toFixed(2);
+    const celkom = (totalCena + dovoz).toFixed(2);
     document.getElementById('pb_dni').textContent = totalDni + (totalDni === 1 ? ' deň' : totalDni < 5 ? ' dni' : ' dní');
-    document.getElementById('pb_cena_den').textContent = tier.cena + ' €';
+    document.getElementById('pb_cena_den').textContent = (hasCustom ? avgCena + ' € ⚡' : tier.cena + ' €');
     document.getElementById('pb_km').textContent = tier.km + ' km';
     document.getElementById('pb_celkom').textContent = celkom + ' €' + (dovoz > 0 ? ` (vrátane ${dovoz} € dovoz)` : '');
-    document.getElementById('f_cena_den').value = tier.cena;
+    document.getElementById('f_cena_den').value = hasCustom ? avgCena : tier.cena;
     document.getElementById('t_km_limit').value = tier.km + ' km/deň';
     box.style.display = 'block';
     highlightCennikRow(tier);
@@ -1300,25 +1331,33 @@
   }
 
   // ── QUICK CALC ────────────────────────────────────────────────────────────────
-  let _qcRows = [{od:'', do:''}];
+  let _qcRows = [{od:'', do:'', cena_den:null}];
 
   function qcRenderRows() {
     const container = document.getElementById('qc-rows');
     if (!container) return;
-    container.innerHTML = _qcRows.map((r, i) => `
+    container.innerHTML = _qcRows.map((r, i) => {
+      const autoP = (r.od && r.do && r.od < r.do) ? getTier(daysBetween(r.od, r.do)).cena : null;
+      const hasCustom = r.cena_den !== null && r.cena_den !== undefined && r.cena_den !== '';
+      return `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <div class="fgrid" style="margin-top:0;flex:1;gap:8px;">
-          <div class="field"><label style="font-size:11px;">Prevzatie</label><input type="date" value="${r.od}" onchange="_qcRows[${i}].od=this.value;qcUpdate()"></div>
-          <div class="field"><label style="font-size:11px;">Vrátenie</label><input type="date" value="${r.do}" onchange="_qcRows[${i}].do=this.value;qcUpdate()"></div>
+          <div class="field"><label style="font-size:11px;">Prevzatie</label><input type="date" value="${r.od}" onchange="_qcRows[${i}].od=this.value;qcRenderRows()"></div>
+          <div class="field"><label style="font-size:11px;">Vrátenie</label><input type="date" value="${r.do}" onchange="_qcRows[${i}].do=this.value;qcRenderRows()"></div>
+          <div class="field"><label style="font-size:11px;color:${hasCustom?'#e53e3e':'#718096'};">€/deň ${hasCustom?'✎':''}</label>
+            <input type="number" value="${hasCustom ? r.cena_den : ''}" placeholder="${autoP ? autoP : '—'}" min="0" step="1"
+              style="${hasCustom ? 'border-color:#e53e3e;background:#fff5f5;font-weight:700;' : ''}"
+              onchange="_qcRows[${i}].cena_den=this.value!==''?parseFloat(this.value):null;this.style.borderColor=this.value?'#e53e3e':'';this.style.background=this.value?'#fff5f5':'';this.style.fontWeight=this.value?'700':'';qcUpdate()">
+          </div>
         </div>
         ${_qcRows.length > 1 ? `<button onclick="qcRemoveRow(${i})" title="Odstrániť" style="width:26px;height:26px;border-radius:50%;background:none;border:1.5px solid #e53e3e;color:#e53e3e;font-size:15px;line-height:1;cursor:pointer;flex-shrink:0;margin-top:16px;">×</button>` : '<div style="width:26px;flex-shrink:0;margin-top:16px;"></div>'}
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
     qcUpdate();
   }
 
   function qcAddRow() {
-    _qcRows.push({od:'', do:''});
+    _qcRows.push({od:'', do:'', cena_den:null});
     qcRenderRows();
   }
 
@@ -1336,7 +1375,9 @@
       const ok = r.od && r.do && r.od < r.do;
       const dni = ok ? daysBetween(r.od, r.do) : 0;
       const tier = ok ? getTier(dni) : null;
-      return { ...r, ok, dni, tier, km: ok ? dni * tier.km : 0, cena: ok ? (dni * tier.cena).toFixed(2) : null };
+      const hasCustom = r.cena_den !== null && r.cena_den !== undefined && r.cena_den !== '';
+      const cenaDen = ok ? (hasCustom ? parseFloat(r.cena_den) : tier.cena) : 0;
+      return { ...r, ok, dni, tier, km: ok ? dni * tier.km : 0, cenaDen, cena: ok ? (dni * cenaDen).toFixed(2) : null, hasCustom };
     });
 
     const validRows = rows.filter(r => r.ok);
@@ -1345,8 +1386,9 @@
     if (!validRows.length || totalDni <= 0) { result.style.display = 'none'; return; }
 
     const totalTier = getTier(totalDni);
-    const totalCelkom = (totalDni * totalTier.cena).toFixed(2);
+    const totalCelkom = validRows.reduce((s, r) => s + parseFloat(r.cena), 0).toFixed(2);
     const totalKm = totalDni * totalTier.km;
+    const anyCustom = validRows.some(r => r.hasCustom);
 
     let html = '';
 
@@ -1366,7 +1408,7 @@
             <td style="padding:5px 6px 5px 0;color:#1a1a2e;font-size:11px;">${fmt(r.od)} – ${fmt(r.do)}</td>
             <td style="text-align:right;padding:5px 4px;font-weight:600;">${r.dni}</td>
             <td style="text-align:right;padding:5px 4px;color:#3182ce;font-weight:600;">${r.km.toLocaleString('sk-SK')} km</td>
-            <td style="text-align:right;padding:5px 0 5px 4px;font-weight:600;">${r.cena} €</td>
+            <td style="text-align:right;padding:5px 0 5px 4px;font-weight:600;">${r.cena} €${r.hasCustom ? ' <span style="color:#e53e3e;font-size:10px;">⚡</span>' : ''}</td>
           </tr>`;
         } else {
           const msg = (r.od && r.do && r.od >= r.do) ? 'vrátenie pred prevzatím' : 'nevyplnené';
@@ -1382,7 +1424,7 @@
         <td style="text-align:right;padding:6px 4px;font-weight:700;color:#3182ce;">${totalKm.toLocaleString('sk-SK')} km</td>
         <td style="text-align:right;padding:6px 0 6px 4px;font-weight:700;">${totalCelkom} €</td>
       </tr></table>`;
-      html += `<div style="font-size:11px;color:#718096;">${totalTier.cena} €/deň · limit ${totalTier.km} km/deň · kaucia 300 € · nadlimit 0,15 €/km</div>`;
+      html += `<div style="font-size:11px;color:#718096;">${anyCustom ? '⚡ vlastná cena ·' : totalTier.cena + ' €/deň ·'} limit ${totalTier.km} km/deň · kaucia 300 € · nadlimit 0,15 €/km</div>`;
     } else {
       // Single row — compact
       const r = validRows[0];
@@ -1397,7 +1439,7 @@
   function qcApply() {
     const valid = _qcRows.filter(r => r.od && r.do && r.od < r.do);
     if (!valid.length) return;
-    _periodsData = valid.map(r => ({od:r.od, od_cas:'10:00', do:r.do, do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne'}));
+    _periodsData = valid.map(r => ({od:r.od, od_cas:'10:00', do:r.do, do_cas:'10:00', miesto_od:'', miesto_do:'', dovoz_od:'vlastne', dovoz_do:'vlastne', cena_den:r.cena_den!==undefined?r.cena_den:null}));
     renderPeriods();
     updatePricing();
     wzShow(3);
@@ -1417,9 +1459,13 @@
       if (p.dovoz_do === 'odvoz') totalDovoz += 20;
     });
 
+    let totalCena = 0;
+    _periodsData.forEach(p => {
+      if (p.od && p.do) totalCena += daysBetween(p.od, p.do) * periodEffectivePrice(p);
+    });
     const cenaDen = parseFloat(val('f_cena_den')) || 0;
-    const celkomBezDovoz = (totalDni * cenaDen).toFixed(2);
-    const celkom = (totalDni * cenaDen + totalDovoz).toFixed(2);
+    const celkomBezDovoz = totalCena.toFixed(2);
+    const celkom = (totalCena + totalDovoz).toFixed(2);
     const depozit = val('f_depozit') ? val('f_depozit') + ' €' : '300 €';
     const spoluucast = val('f_spoluucast') ? val('f_spoluucast') + ' €' : 'podľa dohody';
     const kmLimit = val('t_km_limit') || (totalDni > 0 ? getTier(totalDni).km + ' km/deň' : 'neobmedzené');
@@ -1508,8 +1554,21 @@
       <h3>Článok IV. — Cena, platba a kaucia</h3>
       <table>
         <tr><th>Položka</th><th>Suma</th></tr>
-        <tr><td>Cena za deň</td><td>${cenaDen.toFixed(2)} €</td></tr>
-        <tr><td>Celkový počet dní</td><td>${totalDni}</td></tr>
+        ${(() => {
+          const hasAnyCustom = activePeriods.some(p => p.cena_den !== null && p.cena_den !== undefined && p.cena_den !== '');
+          if (hasAnyCustom && activePeriods.length > 1) {
+            return activePeriods.map((p, i) => {
+              const dni = daysBetween(p.od, p.do);
+              const cp = periodEffectivePrice(p);
+              const isCustom = p.cena_den !== null && p.cena_den !== undefined && p.cena_den !== '';
+              return `<tr><td>Termín ${i+1}: ${formatDate(p.od)} – ${formatDate(p.do)} (${dni} dní × ${cp.toFixed(2)} €${isCustom ? ' ⚡' : ''})</td><td>${(dni*cp).toFixed(2)} €</td></tr>`;
+            }).join('') + `<tr><td>Celkový počet dní</td><td>${totalDni}</td></tr>`;
+          } else {
+            const cp = activePeriods[0] ? periodEffectivePrice(activePeriods[0]) : cenaDen;
+            const isCustom = activePeriods[0]?.cena_den !== null && activePeriods[0]?.cena_den !== undefined && activePeriods[0]?.cena_den !== '';
+            return `<tr><td>Cena za deň${isCustom ? ' ⚡' : ''}</td><td>${cp.toFixed(2)} €</td></tr><tr><td>Celkový počet dní</td><td>${totalDni}</td></tr>`;
+          }
+        })()}
         <tr><td>Nájomné celkom</td><td>${celkomBezDovoz} €</td></tr>
         ${dovozRows}
         <tr><td><b>Celková suma k úhrade</b></td><td><b>${celkom} €</b></td></tr>
